@@ -1,0 +1,100 @@
+name: Build OrcaSlicer RPM
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    # Run weekly to check for new releases
+    - cron: '0 0 * * 0'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: registry.fedoraproject.org/fedora:44
+
+    steps:
+      - name: Checkout this repository
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          dnf install -y \
+            rpm-build rpmdevtools git wget curl unzip \
+            cmake ninja-build gcc gcc-c++ pkgconf \
+            autoconf automake libtool m4 \
+            perl-FindBin perl-IPC-Cmd \
+            libquadmath-devel nasm \
+            dbus-devel gtk3-devel webkit2gtk4.1-devel \
+            glew-devel glfw-devel mesa-libGLU-devel mesa-libGL-devel \
+            libjpeg-turbo-devel libpng-devel \
+            openssl-devel libcurl-devel \
+            freetype-devel fontconfig-devel pango-devel \
+            eigen3-devel cereal-devel \
+            extra-cmake-modules eglexternalplatform-devel \
+            gstreamer1-devel gstreamer1-plugins-base-devel gstreamermm-devel \
+            wayland-protocols-devel libxkbcommon-devel \
+            libX11-devel libXi-devel libXrandr-devel libXinerama-devel \
+            libXcursor-devel libXcomposite-devel libXdamage-devel libXext-devel \
+            libXtst-devel libXfixes-devel libXmu-devel \
+            at-spi2-core-devel libepoxy-devel \
+            libspnav-devel libsecret-devel libmspack-devel \
+            texinfo chrpath
+
+      - name: Get latest release version
+        id: version
+        run: |
+          # Get latest release tag from GitHub API (strip 'v' prefix)
+          LATEST=$(curl -s https://api.github.com/repos/OrcaSlicer/OrcaSlicer/releases/latest | grep '"tag_name"' | cut -d '"' -f 4 | sed 's/^v//')
+          echo "version=${LATEST}" >> $GITHUB_OUTPUT
+          echo "Latest version: ${LATEST}"
+
+      - name: Download source tarball
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          # Download source tarball from release (with 'v' prefix)
+          wget -q "https://github.com/OrcaSlicer/OrcaSlicer/archive/refs/tags/v${VERSION}.tar.gz" \
+            -O orcaslicer-${VERSION}-src.tar.gz
+
+      - name: Prepare RPM build tree
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          rpmdev-setuptree
+          cp orcaslicer-${VERSION}-src.tar.gz ~/rpmbuild/SOURCES/
+
+      - name: Update spec file with version
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          # Create spec file from template with correct version
+          sed -e "s/@VERSION@/${VERSION}/g" \
+              -e "s/@RELEASE@/1/g" \
+              orcaslicer.spec > ~/rpmbuild/SPECS/orcaslicer.spec
+
+      - name: Build RPM and SRPM
+        run: |
+          cd ~/rpmbuild
+          rpmbuild -ba SPECS/orcaslicer.spec
+
+      - name: Upload RPM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: orcaslicer-rpm
+          path: |
+            ~/rpmbuild/RPMS/x86_64/*.rpm
+            ~/rpmbuild/SRPMS/*.rpm
+          retention-days: 30
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: OrcaSlicer ${{ steps.version.outputs.version }}
+          files: |
+            ~/rpmbuild/RPMS/x86_64/*.rpm
+            ~/rpmbuild/SRPMS/*.rpm
+          fail_on_unmatched_files: true
+          make_latest: true
