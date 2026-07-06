@@ -1,24 +1,33 @@
 # OrcaSlicer RPM
 
+[![Build OrcaSlicer RPM](https://github.com/MidnightRAT/OrcaSlicer-rpm/actions/workflows/build-rpm.yml/badge.svg)](https://github.com/MidnightRAT/OrcaSlicer-rpm/actions/workflows/build-rpm.yml)
+[![Latest Release](https://img.shields.io/github/v/release/MidnightRAT/OrcaSlicer-rpm)](https://github.com/MidnightRAT/OrcaSlicer-rpm/releases/latest)
+
 RPM packaging for [OrcaSlicer](https://github.com/OrcaSlicer/OrcaSlicer) — open-source slicer for FDM 3D printers.
 
-## How it works
+## Donate
 
-GitHub Actions automatically builds an RPM package for the latest OrcaSlicer release:
+[![Donate via WayForPay](https://img.shields.io/badge/Donate-WayForPay-blue?style=for-the-badge)](https://secure.wayforpay.com/donate/d29145e2b8e3c)
 
-1. Triggers on push to `main`, manual dispatch, or weekly schedule
-2. Runs in a Fedora 44 container
-3. Downloads the latest release source tarball from GitHub
-4. Builds all dependencies from source via OrcaSlicer's `deps/` system
-5. Compiles OrcaSlicer and packages it as RPM
-6. Uploads the RPM and SRPM as artifacts and publishes them to a GitHub Release
+## What is OrcaSlicer?
 
-## Manual build
+OrcaSlicer is an open-source slicer compatible with most FDM printers. Based on PrusaSlicer/BambuStudio, supporting STL, OBJ, 3MF file formats.
+
+## Installation
+
+### From GitHub Release
+
+Download the latest `orcaslicer-*.x86_64.rpm` from [Releases](https://github.com/MidnightRAT/OrcaSlicer-rpm/releases) and install:
+
+```bash
+sudo dnf install orcaslicer-*.x86_64.rpm
+```
+
+### Build from Source
 
 ```bash
 # Install build dependencies (Fedora 44)
-sudo dnf install -y \
-  rpm-build rpmdevtools git wget curl unzip \
+sudo dnf install -y rpm-build rpmdevtools git wget curl unzip \
   cmake ninja-build gcc gcc-c++ pkgconf \
   autoconf automake libtool m4 \
   perl-FindBin perl-IPC-Cmd \
@@ -39,27 +48,18 @@ sudo dnf install -y \
   libspnav-devel libsecret-devel libmspack-devel \
   texinfo chrpath
 
-# Set up RPM build tree
-rpmdev-setuptree
-
-# Download source (replace VERSION)
-VERSION=2.4.1
-wget -q "https://github.com/OrcaSlicer/OrcaSlicer/archive/refs/tags/v${VERSION}.tar.gz" \
-  -O orcaslicer-${VERSION}-src.tar.gz
-cp orcaslicer-${VERSION}-src.tar.gz ~/rpmbuild/SOURCES/
-
-# Create spec from template
-sed -e "s/@VERSION@/${VERSION}/g" -e "s/@RELEASE@/1/g" \
-  orcaslicer.spec > ~/rpmbuild/SPECS/orcaslicer.spec
-
-# Build
-rpmbuild -ba ~/rpmbuild/SPECS/orcaslicer.spec
+# Build RPM
+rpmbuild -ba orcaslicer.spec
 ```
 
-## Installing the RPM
+## CI/CD
 
-```bash
-sudo dnf install ~/rpmbuild/RPMS/x86_64/orcaslicer-*.rpm
-```
+GitHub Actions automatically:
 
-OrcaSlicer will be available in `/opt/OrcaSlicer/` with desktop integration.
+1. Checks for new OrcaSlicer releases
+2. Builds src.rpm and x86_64.rpm
+3. Uploads artifacts to GitHub Releases
+
+## License
+
+AGPL-3.0 (same as OrcaSlicer)
