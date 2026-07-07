@@ -13,9 +13,17 @@ RPM packaging for [OrcaSlicer](https://github.com/OrcaSlicer/OrcaSlicer) — ope
 
 OrcaSlicer is an open-source slicer compatible with most FDM printers. Based on PrusaSlicer/BambuStudio, supporting STL, OBJ, 3MF file formats.
 
+## Features
+
+- Automated RPM builds via GitHub Actions
+- Builds against latest OrcaSlicer releases
+- Includes all required dependencies
+- Desktop integration with icons and .desktop file
+- Support for Fedora 44+
+
 ## Installation
 
-### From GitHub Release
+### From GitHub Release (Recommended)
 
 Download the latest `orcaslicer-*.x86_64.rpm` from [Releases](https://github.com/MidnightRAT/OrcaSlicer-rpm/releases) and install:
 
@@ -56,9 +64,21 @@ rpmbuild -ba orcaslicer.spec
 
 GitHub Actions automatically:
 
-1. Checks for new OrcaSlicer releases
-2. Builds src.rpm and x86_64.rpm
+1. Checks for new OrcaSlicer releases (weekly schedule)
+2. Builds src.rpm and x86_64.rpm in Fedora 44 container
 3. Uploads artifacts to GitHub Releases
+
+**Note:** Workflow does not trigger on changes to CHANGELOG.md or README.md.
+
+## Project Structure
+
+```
+OrcaSlicer-rpm/
+├── .github/workflows/    # GitHub Actions workflow
+├── orcaslicer.spec       # RPM spec file
+├── CHANGELOG.md          # Project changelog
+└── README.md             # This file
+```
 
 ## License
 

@@ -3,6 +3,9 @@ name: Build OrcaSlicer RPM
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'CHANGELOG.md'
+      - 'README.md'
   workflow_dispatch:
   schedule:
     # Run weekly to check for new releases

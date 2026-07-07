@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1
+
+- Fixed OOM: limited build parallelism to 2 jobs (GitHub Actions ~7GB RAM)
+- Disabled workflow triggers on CHANGELOG.md and README.md changes
+- Updated documentation
+
 ## 0.1.0
 
 - Initial RPM packaging for OrcaSlicer
