@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2
+
+- Fixed MimeType in .desktop file: corrected 3MF format identifier
+
 ## 0.1.1
 
 - Fixed OOM: limited build parallelism to 2 jobs (GitHub Actions ~7GB RAM)

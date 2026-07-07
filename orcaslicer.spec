@@ -116,7 +116,7 @@ Icon=orcaslicer
 Terminal=false
 Type=Application
 Categories=Utility;Engineering;
-MimeType=model/stl;model/obj;application/x-3mf;
+MimeType=model/stl;model/obj;model/3mf
 DESKTOP
 
 # Install icons

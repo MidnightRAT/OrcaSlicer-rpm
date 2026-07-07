@@ -20,6 +20,7 @@ OrcaSlicer is an open-source slicer compatible with most FDM printers. Based on 
 - Includes all required dependencies
 - Desktop integration with icons and .desktop file
 - Support for Fedora 44+
+- Correct MIME types for STL, OBJ, and 3MF file associations
 
 ## Installation
 
