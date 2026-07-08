@@ -7,7 +7,7 @@ RPM packaging for [OrcaSlicer](https://github.com/OrcaSlicer/OrcaSlicer) — ope
 
 ## Donate
 
-[![Donate via WayForPay](https://img.shields.io/badge/Donate-WayForPay-blue?style=for-the-badge)](https://secure.wayforpay.com/donate/d29145e2b8e3c)
+[![Donate via Ko-fi](https://img.shields.io/badge/Donate-Ko--fi-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/redeyesnightrat)
 
 ## What is OrcaSlicer?
 
