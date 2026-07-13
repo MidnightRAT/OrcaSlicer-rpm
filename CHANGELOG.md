@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.3
+
+- Added COPR packaging for automated Fedora builds
+- Simplified COPR Makefile (SRPM-only, no deps pre-build)
+- Enabled network access for RPM builds in COPR
+- Removed libquadmath-devel from COPR SRPM step (unavailable on aarch64)
+- Added libquadmath-devel to spec BuildRequires (required on x86_64)
+- Conditional deps skip in spec (uses pre-built deps when available)
+
 ## 0.1.2
 
 - Fixed MimeType in .desktop file: corrected 3MF format identifier
