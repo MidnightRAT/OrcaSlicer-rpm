@@ -3,11 +3,11 @@ srpm:
 	BASEDIR=$$(pwd); \
 	\
 	echo "=== Installing build dependencies ==="; \
-	dnf -y install rpmdevtools wget curl \
+	dnf -y install --skip-unavailable rpmdevtools wget curl \
 	  cmake ninja-build gcc gcc-c++ pkgconf \
 	  autoconf automake libtool m4 \
 	  perl-FindBin perl-IPC-Cmd \
-	  libquadmath-devel nasm \
+	  nasm \
 	  dbus-devel gtk3-devel webkit2gtk4.1-devel \
 	  glew-devel glfw-devel mesa-libGLU-devel mesa-libGL-devel \
 	  libjpeg-turbo-devel libpng-devel \
