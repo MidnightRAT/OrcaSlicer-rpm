@@ -24,7 +24,14 @@ OrcaSlicer is an open-source slicer compatible with most FDM printers. Based on 
 
 ## Installation
 
-### From GitHub Release (Recommended)
+### From COPR (Fedora, Recommended)
+
+```bash
+sudo dnf copr enable chirikrat/OrcaSlicer-rpm
+sudo dnf install orcaslicer
+```
+
+### From GitHub Release
 
 Download the latest `orcaslicer-*.x86_64.rpm` from [Releases](https://github.com/MidnightRAT/OrcaSlicer-rpm/releases) and install:
 
@@ -63,22 +70,31 @@ rpmbuild -ba orcaslicer.spec
 
 ## CI/CD
 
-GitHub Actions automatically:
+### GitHub Actions
+
+Automatically:
 
 1. Checks for new OrcaSlicer releases (weekly schedule)
 2. Builds src.rpm and x86_64.rpm in Fedora 44 container
 3. Uploads artifacts to GitHub Releases
 
-**Note:** Workflow does not trigger on changes to CHANGELOG.md or README.md.
+### COPR
+
+Automatically builds for Fedora 43+ from the latest main branch:
+
+- [COPR Project Page](https://copr.fedorainfracloud.org/projects/chirikrat/OrcaSlicer-rpm/)
+
+**Note:** Workflows do not trigger on changes to CHANGELOG.md or README.md.
 
 ## Project Structure
 
 ```
 OrcaSlicer-rpm/
-├── .github/workflows/    # GitHub Actions workflow
-├── orcaslicer.spec       # RPM spec file
-├── CHANGELOG.md          # Project changelog
-└── README.md             # This file
+├── .copr/Makefile         # COPR SRPM build script
+├── .github/workflows/     # GitHub Actions workflow
+├── orcaslicer.spec        # RPM spec file
+├── CHANGELOG.md           # Project changelog
+└── README.md              # This file
 ```
 
 ## License
