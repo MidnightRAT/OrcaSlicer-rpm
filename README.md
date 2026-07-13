@@ -40,7 +40,7 @@ sudo dnf install -y rpm-build rpmdevtools git wget curl unzip \
   cmake ninja-build gcc gcc-c++ pkgconf \
   autoconf automake libtool m4 \
   perl-FindBin perl-IPC-Cmd \
-  nasm \
+  libquadmath-devel nasm \
   dbus-devel gtk3-devel webkit2gtk4.1-devel \
   glew-devel glfw-devel mesa-libGLU-devel mesa-libGL-devel \
   libjpeg-turbo-devel libpng-devel \

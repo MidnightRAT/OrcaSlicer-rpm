@@ -27,6 +27,7 @@ BuildRequires:  pkgconf
 BuildRequires:  autoconf automake libtool m4
 BuildRequires:  git wget file
 BuildRequires:  perl-FindBin perl-IPC-Cmd
+BuildRequires:  libquadmath-devel
 BuildRequires:  nasm
 BuildRequires:  dbus-devel gtk3-devel webkit2gtk4.1-devel
 BuildRequires:  glew-devel glfw-devel mesa-libGLU-devel mesa-libGL-devel
