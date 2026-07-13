@@ -6,6 +6,7 @@ on:
     paths-ignore:
       - 'CHANGELOG.md'
       - 'README.md'
+      - '.copr/**'
   workflow_dispatch:
   schedule:
     # Run weekly to check for new releases
