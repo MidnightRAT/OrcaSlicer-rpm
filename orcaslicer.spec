@@ -60,12 +60,17 @@ export CMAKE_POLICY_VERSION_MINIMUM=3.5
 NPROC_DEPS=2
 NPROC_BUILD=2
 
-# Build dependencies
-mkdir -p deps/build
-cmake -S deps -B deps/build -G Ninja \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DDEP_WX_GTK3=ON
-cmake --build deps/build -j${NPROC_DEPS}
+# Build dependencies (skip if already pre-built in SRPM)
+if [ ! -d deps/build ]; then
+  echo "=== Building dependencies ==="
+  mkdir -p deps/build
+  cmake -S deps -B deps/build -G Ninja \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DDEP_WX_GTK3=ON
+  cmake --build deps/build -j${NPROC_DEPS}
+else
+  echo "=== Dependencies already built, skipping ==="
+fi
 
 # Build main app
 mkdir -p build

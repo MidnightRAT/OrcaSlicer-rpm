@@ -64,6 +64,23 @@ jobs:
           wget -q "https://github.com/OrcaSlicer/OrcaSlicer/archive/refs/tags/v${VERSION}.tar.gz" \
             -O orcaslicer-${VERSION}-src.tar.gz
 
+      - name: Build dependencies and repackage
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          mkdir -p _src
+          tar xzf orcaslicer-${VERSION}-src.tar.gz -C _src
+          cd _src/OrcaSlicer-${VERSION}
+          export CMAKE_POLICY_VERSION_MINIMUM=3.5
+          mkdir -p deps/build
+          cmake -S deps -B deps/build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DDEP_WX_GTK3=ON
+          cmake --build deps/build -j2
+          cd ../..
+          rm -f orcaslicer-${VERSION}-src.tar.gz
+          tar czf orcaslicer-${VERSION}-src.tar.gz -C _src OrcaSlicer-${VERSION}
+          rm -rf _src
+
       - name: Prepare RPM build tree
         run: |
           VERSION=${{ steps.version.outputs.version }}
