@@ -1,6 +1,6 @@
 # OrcaSlicer RPM
 
-[![Build OrcaSlicer RPM](https://github.com/MidnightRAT/OrcaSlicer-rpm/actions/workflows/build-rpm.yml/badge.svg)](https://github.com/MidnightRAT/OrcaSlicer-rpm/actions/workflows/build-rpm.yml)
+[![Build OrcaSlicer RPM](https://github.com/MidnightRAT/OrcaSlicer-rpm/actions/workflows/release.yml/badge.svg)](https://github.com/MidnightRAT/OrcaSlicer-rpm/actions/workflows/release.yml)
 [![Latest Release](https://img.shields.io/github/v/release/MidnightRAT/OrcaSlicer-rpm)](https://github.com/MidnightRAT/OrcaSlicer-rpm/releases/latest)
 
 RPM packaging for [OrcaSlicer](https://github.com/OrcaSlicer/OrcaSlicer) — open-source slicer for FDM 3D printers.
@@ -91,7 +91,10 @@ Automatically builds for Fedora 43+ from the latest main branch:
 ```
 OrcaSlicer-rpm/
 ├── .copr/Makefile         # COPR SRPM build script
-├── .github/workflows/     # GitHub Actions workflow
+├── .github/workflows/     # GitHub Actions workflows (release.yml, nightly.yml)
+├── build-rpm.sh           # Local RPM build script
+├── patches/               # Source patches
+├── Containerfile          # Container build for local testing
 ├── orcaslicer.spec        # RPM spec file
 ├── CHANGELOG.md           # Project changelog
 └── README.md              # This file
