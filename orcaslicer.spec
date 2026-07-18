@@ -1,5 +1,5 @@
 %global debug_package %{nil}
-%global _smp_nthreads 8
+%global _smp_nthreads 2
 %global _default_patch_fuzz 1
 
 %global wx_version 3.3.2
@@ -8,7 +8,7 @@
 
 Name:           orcaslicer
 Version:        2.4.2
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        Open-source slicer for FDM 3D printers
 License:        AGPL-3.0
 URL:            https://github.com/OrcaSlicer/OrcaSlicer
@@ -115,8 +115,7 @@ unzip -q %{SOURCE3}
 
 %build
 # Limit parallelism
-%global _smp_nthreads 8
-NPROC=8
+NPROC=2
 
 # Bundled deps prefix
 BUNDLED_PREFIX=$(pwd)/_bundled
@@ -272,6 +271,9 @@ install -Dm644 LICENSE.txt %{buildroot}/usr/share/licenses/%{name}/LICENSE
 /usr/share/licenses/%{name}/LICENSE
 
 %changelog
+* Sat Jul 18 2026 OrcaSlicer RPM Maintainer <maintainer@example.com> - 2.4.2-3
+- Reduced compilation parallelism to 2 (prevents OOM on limited RAM)
+
 * Sat Jul 18 2026 OrcaSlicer RPM Maintainer <maintainer@example.com> - 2.4.2-2
 - Added .gitignore, excluded build artifacts from repo
 - Updated README and CHANGELOG
