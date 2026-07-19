@@ -75,7 +75,7 @@ jobs:
           VERSION=${{ steps.version.outputs.version }}
           # Create spec file from template with correct version
           sed -e "s/@VERSION@/${VERSION}/g" \
-              -e "s/@RELEASE@/1/g" \
+              -e "s/@RELEASE@/2/g" \
               orcaslicer.spec > ~/rpmbuild/SPECS/orcaslicer.spec
 
       - name: Build RPM and SRPM
