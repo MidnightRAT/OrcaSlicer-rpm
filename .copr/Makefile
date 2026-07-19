@@ -26,7 +26,7 @@ srpm:
 	echo "=== Generating spec file from template ==="; \
 	test -f orcaslicer.spec || { echo "ERROR: orcaslicer.spec not found in repo root"; exit 1; }; \
 	sed -e "s/@VERSION@/$${VERSION}/g" \
-	    -e "s/@RELEASE@/1/g" \
+	    -e "s/@RELEASE@/2/g" \
 	    orcaslicer.spec > "$$HOME/rpmbuild/SPECS/orcaslicer.spec"; \
 	\
 	echo "=== Building SRPM ==="; \
