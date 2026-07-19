@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.3-2
+
+- Reverted to single build-rpm.yml workflow
+- Added bundled dependency sources (wxWidgets, libnoise, CGAL)
+- Added symlink for resources path during post-build validation
+- Copied patches to SOURCES in workflows, fixed nightly version sed
+
 ## 0.1.3
 
 - Added COPR packaging for automated Fedora builds
