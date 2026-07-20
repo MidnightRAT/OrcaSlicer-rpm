@@ -22,6 +22,7 @@ srpm:
 	rpmdev-setuptree; \
 	mkdir -p "$$HOME/rpmbuild/SOURCES" "$$HOME/rpmbuild/SPECS"; \
 	cp "orcaslicer-$${VERSION}-src.tar.gz" "$$HOME/rpmbuild/SOURCES/"; \
+	cp patches/use-system-deps.patch "$$HOME/rpmbuild/SOURCES/" 2>/dev/null || true; \
 	\
 	echo "=== Generating spec file from template ==="; \
 	test -f orcaslicer.spec || { echo "ERROR: orcaslicer.spec not found in repo root"; exit 1; }; \

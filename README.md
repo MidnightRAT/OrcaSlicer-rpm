@@ -17,7 +17,7 @@ OrcaSlicer is an open-source slicer compatible with most FDM printers. Based on 
 
 - Automated RPM builds via GitHub Actions
 - Builds against latest OrcaSlicer releases
-- Includes all required dependencies
+- Uses system -devel libraries where possible (faster builds, smaller packages)
 - Desktop integration with icons and .desktop file
 - Support for Fedora 44+
 - Correct MIME types for STL, OBJ, and 3MF file associations
@@ -48,12 +48,19 @@ sudo dnf install -y rpm-build rpmdevtools git wget curl unzip \
   autoconf automake libtool m4 \
   perl-FindBin perl-IPC-Cmd \
   libquadmath-devel nasm \
+  texinfo chrpath \
+  zlib-devel libpng-devel libjpeg-turbo-devel \
+  expat-devel libcurl-devel openssl-devel \
+  freetype-devel fontconfig-devel \
+  boost-devel \
+  cereal-devel qhull-devel glew-devel glfw3-devel \
+  tbb-devel blosc-devel openexr-devel openvdb-devel \
+  gmp-devel mpfr-devel eigen3-devel CGAL-devel \
+  nlopt-devel draco-devel opencv-devel OpenCASCADE-devel \
+  python3-devel \
   dbus-devel gtk3-devel webkit2gtk4.1-devel \
-  glew-devel glfw-devel mesa-libGLU-devel mesa-libGL-devel \
-  libjpeg-turbo-devel libpng-devel \
-  openssl-devel libcurl-devel \
-  freetype-devel fontconfig-devel pango-devel \
-  eigen3-devel cereal-devel \
+  mesa-libGLU-devel mesa-libGL-devel \
+  pango-devel \
   extra-cmake-modules eglexternalplatform-devel \
   gstreamer1-devel gstreamer1-plugins-base-devel gstreamermm-devel \
   wayland-protocols-devel libxkbcommon-devel \
@@ -61,8 +68,7 @@ sudo dnf install -y rpm-build rpmdevtools git wget curl unzip \
   libXcursor-devel libXcomposite-devel libXdamage-devel libXext-devel \
   libXtst-devel libXfixes-devel libXmu-devel \
   at-spi2-core-devel libepoxy-devel \
-  libspnav-devel libsecret-devel libmspack-devel \
-  texinfo chrpath
+  libspnav-devel libsecret-devel libmspack-devel
 
 # Build RPM
 rpmbuild -ba orcaslicer.spec
@@ -92,6 +98,8 @@ Automatically builds for Fedora 43+ from the latest main branch:
 OrcaSlicer-rpm/
 ├── .copr/Makefile         # COPR SRPM build script
 ├── .github/workflows/     # GitHub Actions workflow
+├── patches/               # Patches applied during build
+│   └── use-system-deps.patch
 ├── orcaslicer.spec        # RPM spec file
 ├── CHANGELOG.md           # Project changelog
 └── README.md              # This file

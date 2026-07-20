@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.4
+
+- Use system -devel libraries for leaf deps (NLopt, Qhull, OpenCV, OpenCASCADE)
+- Added USE_SYSTEM_DEPS CMake option via patch to deps/CMakeLists.txt
+- Added CMP0167 policy for CMake 4.x compatibility with FindBoost
+- Added CMAKE_POLICY_DEFAULT_CMP0167=OLD to cmake invocation
+- Cached podman build image (orcaslicer-build) for faster builds
+- Removed -DSLIC3R_STATIC=1 to support shared system libraries
+- Added runtime Requires for system shared libraries
+
 ## 0.1.3-2
 
 - Reverted to single build-rpm.yml workflow

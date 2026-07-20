@@ -33,12 +33,19 @@ jobs:
             autoconf automake libtool m4 \
             perl-FindBin perl-IPC-Cmd \
             libquadmath-devel nasm \
+            texinfo chrpath \
+            zlib-devel libpng-devel libjpeg-turbo-devel \
+            expat-devel libcurl-devel openssl-devel \
+            freetype-devel fontconfig-devel \
+            boost-devel \
+            cereal-devel qhull-devel glew-devel glfw3-devel \
+            tbb-devel blosc-devel openexr-devel openvdb-devel \
+            gmp-devel mpfr-devel eigen3-devel CGAL-devel \
+            nlopt-devel draco-devel opencv-devel OpenCASCADE-devel \
+            python3-devel \
             dbus-devel gtk3-devel webkit2gtk4.1-devel \
-            glew-devel glfw-devel mesa-libGLU-devel mesa-libGL-devel \
-            libjpeg-turbo-devel libpng-devel \
-            openssl-devel libcurl-devel \
-            freetype-devel fontconfig-devel pango-devel \
-            eigen3-devel cereal-devel \
+            mesa-libGLU-devel mesa-libGL-devel \
+            pango-devel \
             extra-cmake-modules eglexternalplatform-devel \
             gstreamer1-devel gstreamer1-plugins-base-devel gstreamermm-devel \
             wayland-protocols-devel libxkbcommon-devel \
@@ -46,8 +53,7 @@ jobs:
             libXcursor-devel libXcomposite-devel libXdamage-devel libXext-devel \
             libXtst-devel libXfixes-devel libXmu-devel \
             at-spi2-core-devel libepoxy-devel \
-            libspnav-devel libsecret-devel libmspack-devel \
-            texinfo chrpath
+            libspnav-devel libsecret-devel libmspack-devel
 
       - name: Get latest release version
         id: version
@@ -69,6 +75,7 @@ jobs:
           VERSION=${{ steps.version.outputs.version }}
           rpmdev-setuptree
           cp orcaslicer-${VERSION}-src.tar.gz ~/rpmbuild/SOURCES/
+          cp patches/use-system-deps.patch ~/rpmbuild/SOURCES/ 2>/dev/null || true
 
       - name: Update spec file with version
         run: |
