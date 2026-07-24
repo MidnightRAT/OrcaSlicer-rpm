@@ -1,5 +1,5 @@
 diff --git a/deps/CMakeLists.txt b/deps/CMakeLists.txt
-index dbbf9a0..415ee65 100644
+index dbbf9a0..ccc97e4 100644
 --- a/deps/CMakeLists.txt
 +++ b/deps/CMakeLists.txt
 @@ -55,6 +55,7 @@ endif ()
@@ -28,7 +28,7 @@ index dbbf9a0..415ee65 100644
              -DCMAKE_IGNORE_PREFIX_PATH:STRING=${CMAKE_IGNORE_PREFIX_PATH}
              -DCMAKE_C_COMPILER_LAUNCHER:STRING=${CMAKE_C_COMPILER_LAUNCHER}
              -DCMAKE_CXX_COMPILER_LAUNCHER:STRING=${CMAKE_CXX_COMPILER_LAUNCHER}
-@@ -315,6 +316,33 @@ if(FLATPAK)
+@@ -315,6 +316,32 @@ if(FLATPAK)
      find_package(CURL)
  endif()
  
@@ -51,7 +51,6 @@ index dbbf9a0..415ee65 100644
 +    find_package(OpenCASCADE)
 +    find_package(OpenCV 4.0)
 +    find_package(OpenVDB 5.0)
-+    find_package(OpenEXR)
 +    find_package(PkgConfig)
 +    if(PKG_CONFIG_FOUND)
 +        pkg_check_modules(BLOSC blosc)
@@ -62,7 +61,7 @@ index dbbf9a0..415ee65 100644
  set(ZLIB_PKG "")
  if (NOT ZLIB_FOUND)
      include(ZLIB/ZLIB.cmake)
-@@ -336,25 +364,73 @@ endif ()
+@@ -336,25 +363,73 @@ endif ()
  set(DEP_Boost_COMPONENTS system iostreams filesystem thread log locale regex date_time)
  include(Boost/Boost.cmake)
  
@@ -145,7 +144,7 @@ index dbbf9a0..415ee65 100644
  include(libnoise/libnoise.cmake)
  
  include(Draco/Draco.cmake)
-@@ -374,7 +450,7 @@ endif()
+@@ -374,7 +449,7 @@ endif()
  # so, just don't even bother
  # ...i think this is how it works? change if wrong
  set(CURL_PKG "")
@@ -154,7 +153,7 @@ index dbbf9a0..415ee65 100644
      include(CURL/CURL.cmake)
      set(CURL_PKG dep_CURL)
  endif ()
-@@ -412,25 +488,37 @@ if((REV_PARSE_RESULT EQUAL 0) AND (REV_PARSE_OUTPUT STREQUAL "true"))
+@@ -412,25 +487,37 @@ if((REV_PARSE_RESULT EQUAL 0) AND (REV_PARSE_OUTPUT STREQUAL "true"))
      file(RELATIVE_PATH BINARY_DIR_REL  ${CMAKE_SOURCE_DIR}/.. ${CMAKE_BINARY_DIR})
  endif ()
  
