@@ -1,0 +1,15 @@
+diff --git a/deps/Boost/Boost.cmake b/deps/Boost/Boost.cmake
+index 8960316..8daf897 100644
+--- a/deps/Boost/Boost.cmake
++++ b/deps/Boost/Boost.cmake
+@@ -25,8 +25,8 @@ if (MSVC AND DEP_DEBUG)
+ endif ()
+ 
+ orcaslicer_add_cmake_project(Boost
+-    URL "https://github.com/boostorg/boost/releases/download/boost-1.84.0/boost-1.84.0.tar.gz"
+-    URL_HASH SHA256=4d27e9efed0f6f152dc28db6430b9d3dfb40c0345da7342eaa5a987dde57bd95
++    URL "https://archives.boost.io/release/1.84.0/source/boost_1_84_0.tar.gz"
++    URL_HASH SHA256=a5800f405508f5df8114558ca9855d2640a2de8f0445f051fa1c7c3383045724
+     LIST_SEPARATOR |
+     CMAKE_ARGS
+         -DBOOST_EXCLUDE_LIBRARIES:STRING=contract|fiber|numpy|stacktrace|wave|test
