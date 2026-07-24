@@ -47,7 +47,10 @@ jobs:
             libXtst-devel libXfixes-devel libXmu-devel \
             at-spi2-core-devel libepoxy-devel \
             libspnav-devel libsecret-devel libmspack-devel \
-            texinfo chrpath
+            texinfo chrpath \
+            tbb-devel blosc-devel NLopt-devel opencv-devel \
+            opencascade-devel zlib-ng-compat-devel expat-devel \
+            openvdb-devel mpfr-devel CGAL-devel openexr-devel
 
       - name: Get latest release version
         id: version
@@ -69,6 +72,7 @@ jobs:
           VERSION=${{ steps.version.outputs.version }}
           rpmdev-setuptree
           cp orcaslicer-${VERSION}-src.tar.gz ~/rpmbuild/SOURCES/
+          cp patches/0001-use-system-libs.patch ~/rpmbuild/SOURCES/
 
       - name: Update spec file with version
         run: |

@@ -7,6 +7,7 @@ Summary:        Open-source slicer for FDM 3D printers
 License:        AGPL-3.0
 URL:            https://github.com/OrcaSlicer/OrcaSlicer
 Source0:        %{name}-%{version}-src.tar.gz
+Patch0:         0001-use-system-libs.patch
 
 # Runtime deps
 Requires:       gtk3
@@ -45,20 +46,32 @@ BuildRequires:  at-spi2-core-devel libepoxy-devel
 BuildRequires:  libspnav-devel libsecret-devel libmspack-devel
 BuildRequires:  texinfo
 BuildRequires:  chrpath
+# System lib deps (USE_SYSTEM_LIBS)
+BuildRequires:  tbb-devel
+BuildRequires:  blosc-devel
+BuildRequires:  NLopt-devel
+BuildRequires:  opencv-devel
+BuildRequires:  opencascade-devel
+BuildRequires:  zlib-ng-compat-devel
+BuildRequires:  expat-devel
+BuildRequires:  openvdb-devel
+BuildRequires:  mpfr-devel
+BuildRequires:  CGAL-devel
+BuildRequires:  openexr-devel
 
 %description
 OrcaSlicer is an open-source slicer for FDM 3D printers.
 Based on PrusaSlicer/BambuStudio, supporting STL, OBJ, 3MF file formats.
 
 %prep
-%setup -n OrcaSlicer-%{version}
+%autosetup -n OrcaSlicer-%{version} -p1
 
 %build
 export CMAKE_POLICY_VERSION_MINIMUM=3.5
 
 # Limit parallelism to avoid OOM on CI (GitHub Actions has ~7GB RAM)
-NPROC_DEPS=2
-NPROC_BUILD=2
+NPROC_DEPS=6
+NPROC_BUILD=6
 
 # Build dependencies (skip if already pre-built in SRPM)
 if [ ! -d deps/build ]; then
@@ -66,7 +79,8 @@ if [ ! -d deps/build ]; then
   mkdir -p deps/build
   cmake -S deps -B deps/build -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \
-    -DDEP_WX_GTK3=ON
+    -DDEP_WX_GTK3=ON \
+    -DUSE_SYSTEM_LIBS=ON
   cmake --build deps/build -j${NPROC_DEPS}
 else
   echo "=== Dependencies already built, skipping ==="
@@ -75,7 +89,7 @@ fi
 # Build main app
 mkdir -p build
 cmake -S . -B build -G "Ninja Multi-Config" \
-  -DCMAKE_PREFIX_PATH="$(pwd)/deps/build/OrcaSlicer_dep/usr/local" \
+  -DCMAKE_PREFIX_PATH="/usr;$(pwd)/deps/build/OrcaSlicer_dep/usr/local" \
   -DSLIC3R_STATIC=1 \
   -DSLIC3R_GTK=3 \
   -DBBL_RELEASE_TO_PUBLIC=1 \

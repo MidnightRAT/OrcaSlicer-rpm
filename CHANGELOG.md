@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0
+
+- Use system -devel packages for 18 bundled dependencies (TBB, Blosc, NLopt, OpenCV, OCCT, CURL, JPEG, Cereal, GLEW, GMP, FREETYPE, ZLIB, PNG, EXPAT, OpenVDB, MPFR, CGAL, OpenEXR)
+- Faster builds by skipping compilation of system-installed libraries
+- Added USE_SYSTEM_LIBS cmake option to deps build system
+- New BuildRequires: tbb-devel, blosc-devel, NLopt-devel, opencv-devel, opencascade-devel, zlib-ng-compat-devel, expat-devel, openvdb-devel, mpfr-devel, CGAL-devel, openexr-devel
+
 ## 0.1.3-2
 
 - Reverted to single build-rpm.yml workflow
