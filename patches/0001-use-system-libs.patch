@@ -1,5 +1,5 @@
 diff --git a/deps/CMakeLists.txt b/deps/CMakeLists.txt
-index dbbf9a0..03f0f53 100644
+index dbbf9a0..415ee65 100644
 --- a/deps/CMakeLists.txt
 +++ b/deps/CMakeLists.txt
 @@ -55,6 +55,7 @@ endif ()
@@ -62,7 +62,7 @@ index dbbf9a0..03f0f53 100644
  set(ZLIB_PKG "")
  if (NOT ZLIB_FOUND)
      include(ZLIB/ZLIB.cmake)
-@@ -336,25 +364,75 @@ endif ()
+@@ -336,25 +364,73 @@ endif ()
  set(DEP_Boost_COMPONENTS system iostreams filesystem thread log locale regex date_time)
  include(Boost/Boost.cmake)
  
@@ -95,18 +95,15 @@ index dbbf9a0..03f0f53 100644
 +endif()
  
 -include(Blosc/Blosc.cmake)
--include(OpenEXR/OpenEXR.cmake)
--include(OpenVDB/OpenVDB.cmake)
 +if(USE_SYSTEM_LIBS AND BLOSC_FOUND)
 +    message(STATUS "Using system Blosc")
 +else()
 +    include(Blosc/Blosc.cmake)
 +endif()
-+if(USE_SYSTEM_LIBS AND OpenEXR_FOUND)
-+    message(STATUS "Using system OpenEXR")
-+else()
-+    include(OpenEXR/OpenEXR.cmake)
-+endif()
++# Always build bundled OpenEXR - system OpenEXR 3.x doesn't have IlmBase::Half
++# which is required by the bundled FindOpenVDB.cmake module
+ include(OpenEXR/OpenEXR.cmake)
+-include(OpenVDB/OpenVDB.cmake)
 +set(OPENVDB_PKG "")
 +if(USE_SYSTEM_LIBS AND OpenVDB_FOUND)
 +    message(STATUS "Using system OpenVDB")
@@ -148,7 +145,16 @@ index dbbf9a0..03f0f53 100644
  include(libnoise/libnoise.cmake)
  
  include(Draco/Draco.cmake)
-@@ -412,25 +490,37 @@ if((REV_PARSE_RESULT EQUAL 0) AND (REV_PARSE_OUTPUT STREQUAL "true"))
+@@ -374,7 +450,7 @@ endif()
+ # so, just don't even bother
+ # ...i think this is how it works? change if wrong
+ set(CURL_PKG "")
+-if (NOT OPENSSL_FOUND OR NOT CURL_FOUND)
++if (NOT CURL_FOUND)
+     include(CURL/CURL.cmake)
+     set(CURL_PKG dep_CURL)
+ endif ()
+@@ -412,25 +488,37 @@ if((REV_PARSE_RESULT EQUAL 0) AND (REV_PARSE_OUTPUT STREQUAL "true"))
      file(RELATIVE_PATH BINARY_DIR_REL  ${CMAKE_SOURCE_DIR}/.. ${CMAKE_BINARY_DIR})
  endif ()
  
