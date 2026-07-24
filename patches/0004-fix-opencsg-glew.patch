@@ -1,0 +1,16 @@
+diff --git a/deps/OpenCSG/CMakeLists.txt.in b/deps/OpenCSG/CMakeLists.txt.in
+index 37da0f7..b732483 100644
+--- a/deps/OpenCSG/CMakeLists.txt.in
++++ b/deps/OpenCSG/CMakeLists.txt.in
+@@ -2,9 +2,8 @@ cmake_minimum_required(VERSION 3.0)
+ 
+ project(OpenCSG)
+ 
+-if (NOT BUILD_SHARED_LIBS)
+-  set(GLEW_USE_STATIC_LIBS ON)
+-elseif (MSVC)
++set(GLEW_USE_STATIC_LIBS OFF)
++if (MSVC)
+   set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+ endif()
+ 

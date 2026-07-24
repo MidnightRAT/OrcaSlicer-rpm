@@ -8,6 +8,9 @@ License:        AGPL-3.0
 URL:            https://github.com/OrcaSlicer/OrcaSlicer
 Source0:        %{name}-%{version}-src.tar.gz
 Patch0:         0001-use-system-libs.patch
+Patch1:         0002-fix-eigen-deps.patch
+Patch2:         0003-fix-opencsg-deps.patch
+Patch3:         0004-fix-opencsg-glew.patch
 
 # Runtime deps
 Requires:       gtk3

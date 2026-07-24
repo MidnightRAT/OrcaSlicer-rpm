@@ -73,6 +73,9 @@ jobs:
           rpmdev-setuptree
           cp orcaslicer-${VERSION}-src.tar.gz ~/rpmbuild/SOURCES/
           cp patches/0001-use-system-libs.patch ~/rpmbuild/SOURCES/
+          cp patches/0002-fix-eigen-deps.patch ~/rpmbuild/SOURCES/
+          cp patches/0003-fix-opencsg-deps.patch ~/rpmbuild/SOURCES/
+          cp patches/0004-fix-opencsg-glew.patch ~/rpmbuild/SOURCES/
 
       - name: Update spec file with version
         run: |
