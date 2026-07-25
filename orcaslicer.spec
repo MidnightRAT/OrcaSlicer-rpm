@@ -11,7 +11,7 @@ Patch0:         0001-use-system-libs.patch
 Patch1:         0002-fix-eigen-deps.patch
 Patch2:         0003-fix-opencsg-deps.patch
 Patch3:         0004-fix-opencsg-glew.patch
-Patch4:         0005-fix-boost-url.patch
+Patch4:         0006-fix-openvdb-deps.patch
 
 # Runtime deps
 Requires:       gtk3
