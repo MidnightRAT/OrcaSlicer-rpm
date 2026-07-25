@@ -23,10 +23,18 @@ srpm:
 	mkdir -p "$$HOME/rpmbuild/SOURCES" "$$HOME/rpmbuild/SPECS"; \
 	cp "orcaslicer-$${VERSION}-src.tar.gz" "$$HOME/rpmbuild/SOURCES/"; \
 	\
+	echo "=== Copying patches ==="; \
+	for p in patches/000*.patch; do \
+	  if [ -f "$$p" ]; then \
+	    cp "$$p" "$$HOME/rpmbuild/SOURCES/"; \
+	    echo "  Copied: $$p"; \
+	  fi; \
+	done; \
+	\
 	echo "=== Generating spec file from template ==="; \
 	test -f orcaslicer.spec || { echo "ERROR: orcaslicer.spec not found in repo root"; exit 1; }; \
 	sed -e "s/@VERSION@/$${VERSION}/g" \
-	    -e "s/@RELEASE@/2/g" \
+	    -e "s/@RELEASE@/3/g" \
 	    orcaslicer.spec > "$$HOME/rpmbuild/SPECS/orcaslicer.spec"; \
 	\
 	echo "=== Building SRPM ==="; \
