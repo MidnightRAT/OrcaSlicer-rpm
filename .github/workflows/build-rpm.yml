@@ -47,10 +47,7 @@ jobs:
             libXtst-devel libXfixes-devel libXmu-devel \
             at-spi2-core-devel libepoxy-devel \
             libspnav-devel libsecret-devel libmspack-devel \
-            texinfo chrpath \
-            tbb-devel blosc-devel NLopt-devel opencv-devel \
-            opencascade-devel zlib-ng-compat-devel expat-devel \
-            openvdb-devel mpfr-devel CGAL-devel openexr-devel
+            texinfo chrpath
 
       - name: Get latest release version
         id: version
@@ -72,19 +69,13 @@ jobs:
           VERSION=${{ steps.version.outputs.version }}
           rpmdev-setuptree
           cp orcaslicer-${VERSION}-src.tar.gz ~/rpmbuild/SOURCES/
-          cp patches/0001-use-system-libs.patch ~/rpmbuild/SOURCES/
-          cp patches/0002-fix-eigen-deps.patch ~/rpmbuild/SOURCES/
-          cp patches/0003-fix-opencsg-deps.patch ~/rpmbuild/SOURCES/
-          cp patches/0004-fix-opencsg-glew.patch ~/rpmbuild/SOURCES/
-          cp patches/0006-fix-openvdb-deps.patch ~/rpmbuild/SOURCES/
-          cp patches/0007-fix-cgal-deps.patch ~/rpmbuild/SOURCES/
 
       - name: Update spec file with version
         run: |
           VERSION=${{ steps.version.outputs.version }}
           # Create spec file from template with correct version
           sed -e "s/@VERSION@/${VERSION}/g" \
-              -e "s/@RELEASE@/3/g" \
+              -e "s/@RELEASE@/2/g" \
               orcaslicer.spec > ~/rpmbuild/SPECS/orcaslicer.spec
 
       - name: Build RPM and SRPM
