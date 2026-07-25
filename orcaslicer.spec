@@ -95,7 +95,7 @@ fi
 mkdir -p build
 cmake -S . -B build -G "Ninja" \
   -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_PREFIX_PATH="/usr;$(pwd)/deps/build/OrcaSlicer_dep/usr/local" \
+  -DCMAKE_PREFIX_PATH="$(pwd)/deps/build/OrcaSlicer_dep/usr/local;/usr" \
   -DSLIC3R_STATIC=1 \
   -DSLIC3R_GTK=3 \
   -DBBL_RELEASE_TO_PUBLIC=1 \
