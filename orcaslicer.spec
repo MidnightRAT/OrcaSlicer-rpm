@@ -92,14 +92,15 @@ fi
 
 # Build main app
 mkdir -p build
-cmake -S . -B build -G "Ninja Multi-Config" \
+cmake -S . -B build -G "Ninja" \
+  -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_PREFIX_PATH="/usr;$(pwd)/deps/build/OrcaSlicer_dep/usr/local" \
   -DSLIC3R_STATIC=1 \
   -DSLIC3R_GTK=3 \
   -DBBL_RELEASE_TO_PUBLIC=1 \
   -DBBL_INTERNAL_TESTING=0 \
   -DSLIC3R_PCH=OFF
-cmake --build build --config Release --target OrcaSlicer -j${NPROC_BUILD}
+cmake --build build --target OrcaSlicer -j${NPROC_BUILD}
 
 # Generate localization
 ./scripts/run_gettext.sh || true
@@ -110,16 +111,16 @@ mkdir -p %{buildroot}/opt/OrcaSlicer/bin/crashpad
 mkdir -p %{buildroot}/opt/OrcaSlicer/resources
 
 # Install binary
-cp build/src/Release/orca-slicer %{buildroot}/opt/OrcaSlicer/bin/
+cp build/src/orca-slicer %{buildroot}/opt/OrcaSlicer/bin/
 chmod 755 %{buildroot}/opt/OrcaSlicer/bin/orca-slicer
 # Fix RPATHs - remove build-time paths
 chrpath -d %{buildroot}/opt/OrcaSlicer/bin/orca-slicer 2>/dev/null || true
 
 # Install bundled shared libraries
-cp -f build/src/Release/libaosl.so %{buildroot}/opt/OrcaSlicer/bin/ 2>/dev/null || true
+cp -f build/src/libaosl.so %{buildroot}/opt/OrcaSlicer/bin/ 2>/dev/null || true
 
 # Install crashpad handler
-cp -f build/src/Release/crashpad/crashpad_handler %{buildroot}/opt/OrcaSlicer/bin/crashpad/ 2>/dev/null || true
+cp -f build/src/crashpad/crashpad_handler %{buildroot}/opt/OrcaSlicer/bin/crashpad/ 2>/dev/null || true
 
 # Install resources
 cp -R resources/* %{buildroot}/opt/OrcaSlicer/resources/
