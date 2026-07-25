@@ -1,5 +1,5 @@
 diff --git a/deps/CMakeLists.txt b/deps/CMakeLists.txt
-index dbbf9a0..51ea182 100644
+index dbbf9a0..1b6d446 100644
 --- a/deps/CMakeLists.txt
 +++ b/deps/CMakeLists.txt
 @@ -55,6 +55,7 @@ endif ()
@@ -62,7 +62,7 @@ index dbbf9a0..51ea182 100644
  set(ZLIB_PKG "")
  if (NOT ZLIB_FOUND)
      include(ZLIB/ZLIB.cmake)
-@@ -336,25 +364,68 @@ endif ()
+@@ -336,25 +364,63 @@ endif ()
  set(DEP_Boost_COMPONENTS system iostreams filesystem thread log locale regex date_time)
  include(Boost/Boost.cmake)
  
@@ -119,14 +119,8 @@ index dbbf9a0..51ea182 100644
 +    include(MPFR/MPFR.cmake)
 +endif()
  include(Eigen/Eigen.cmake)
--include(CGAL/CGAL.cmake)
-+set(CGAL_PKG "")
-+if(USE_SYSTEM_LIBS)
-+    message(STATUS "Using system CGAL")
-+else()
-+    include(CGAL/CGAL.cmake)
-+    set(CGAL_PKG dep_CGAL)
-+endif()
++# Always build bundled CGAL - system CGAL 6.x has breaking API changes
+ include(CGAL/CGAL.cmake)
  
 -include(NLopt/NLopt.cmake)
 +set(NLOPT_PKG "")
@@ -139,7 +133,7 @@ index dbbf9a0..51ea182 100644
  include(libnoise/libnoise.cmake)
  
  include(Draco/Draco.cmake)
-@@ -374,7 +445,7 @@ endif()
+@@ -374,7 +440,7 @@ endif()
  # so, just don't even bother
  # ...i think this is how it works? change if wrong
  set(CURL_PKG "")
@@ -148,7 +142,7 @@ index dbbf9a0..51ea182 100644
      include(CURL/CURL.cmake)
      set(CURL_PKG dep_CURL)
  endif ()
-@@ -412,25 +483,38 @@ if((REV_PARSE_RESULT EQUAL 0) AND (REV_PARSE_OUTPUT STREQUAL "true"))
+@@ -412,25 +478,38 @@ if((REV_PARSE_RESULT EQUAL 0) AND (REV_PARSE_OUTPUT STREQUAL "true"))
      file(RELATIVE_PATH BINARY_DIR_REL  ${CMAKE_SOURCE_DIR}/.. ${CMAKE_BINARY_DIR})
  endif ()
  
@@ -187,8 +181,7 @@ index dbbf9a0..51ea182 100644
 +    dep_OpenEXR
 +    ${OPENCV_PKG}
      dep_Eigen
--    dep_CGAL
-+    ${CGAL_PKG}
+     dep_CGAL
      dep_GLFW
 -    dep_OCCT
 +    ${OCCT_PKG}
