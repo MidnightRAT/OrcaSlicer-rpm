@@ -1,5 +1,5 @@
 diff --git a/deps/CMakeLists.txt b/deps/CMakeLists.txt
-index dbbf9a0..ad01a94 100644
+index dbbf9a0..1de5fb0 100644
 --- a/deps/CMakeLists.txt
 +++ b/deps/CMakeLists.txt
 @@ -55,6 +55,7 @@ endif ()
@@ -142,20 +142,15 @@ index dbbf9a0..ad01a94 100644
      include(CURL/CURL.cmake)
      set(CURL_PKG dep_CURL)
  endif ()
-@@ -412,21 +478,29 @@ if((REV_PARSE_RESULT EQUAL 0) AND (REV_PARSE_OUTPUT STREQUAL "true"))
+@@ -412,20 +478,24 @@ if((REV_PARSE_RESULT EQUAL 0) AND (REV_PARSE_OUTPUT STREQUAL "true"))
      file(RELATIVE_PATH BINARY_DIR_REL  ${CMAKE_SOURCE_DIR}/.. ${CMAKE_BINARY_DIR})
  endif ()
  
 +# Always build bundled OCCT - system OCCT 7.9+ removed TKSTEPBase and other libs
  include(OCCT/OCCT.cmake)
--include(OpenCV/OpenCV.cmake)
 +set(OPENCV_PKG "")
-+if(USE_SYSTEM_LIBS AND OpenCV_FOUND)
-+    message(STATUS "Using system OpenCV")
-+else()
-+    include(OpenCV/OpenCV.cmake)
-+    set(OPENCV_PKG dep_OpenCV)
-+endif()
++# Always build bundled OpenCV - system OpenCV 4.13 has API changes
+ include(OpenCV/OpenCV.cmake)
  
  set(_dep_list
      dep_Boost
@@ -171,9 +166,7 @@ index dbbf9a0..ad01a94 100644
 +    ${NLOPT_PKG}
      dep_OpenVDB
      dep_OpenCSG
--    dep_OpenCV
 +    dep_OpenEXR
-+    ${OPENCV_PKG}
+     dep_OpenCV
      dep_Eigen
      dep_CGAL
-     dep_GLFW
