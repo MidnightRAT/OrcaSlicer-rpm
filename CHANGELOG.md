@@ -1,11 +1,13 @@
 # Changelog
 
-## 0.2.0
+## 0.2.1
 
-- Use system -devel packages for 18 bundled dependencies (TBB, Blosc, NLopt, OpenCV, OCCT, CURL, JPEG, Cereal, GLEW, GMP, FREETYPE, ZLIB, PNG, EXPAT, OpenVDB, MPFR, CGAL, OpenEXR)
-- Faster builds by skipping compilation of system-installed libraries
+- Use system -devel packages for 7 bundled dependencies (TBB, Blosc, NLopt, Cereal, GLEW, GMP, MPFR)
 - Added USE_SYSTEM_LIBS cmake option to deps build system
-- New BuildRequires: tbb-devel, blosc-devel, NLopt-devel, opencv-devel, opencascade-devel, zlib-ng-compat-devel, expat-devel, openvdb-devel, mpfr-devel, CGAL-devel, openexr-devel
+- Switched main build to single-config Ninja generator
+- Removed bundled CGAL/OpenCV/OCCT/OpenVDB from system deps list (API incompatibilities with Fedora 44 system versions)
+- Removed bundled OpenEXR from system deps list (system 3.x lacks IlmBase::Half required by bundled FindOpenVDB)
+- New BuildRequires: tbb-devel, blosc-devel, NLopt-devel, cereal-devel, glew-devel, gmp-devel, mpfr-devel
 
 ## 0.1.3-2
 

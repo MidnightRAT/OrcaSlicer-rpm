@@ -17,7 +17,7 @@ OrcaSlicer is an open-source slicer compatible with most FDM printers. Based on 
 
 - Automated RPM builds via GitHub Actions
 - Builds against latest OrcaSlicer releases
-- Uses system -devel packages where available (faster builds)
+- Uses system -devel packages where available (TBB, Blosc, NLopt, Cereal, GLEW, GMP, MPFR)
 - Desktop integration with icons and .desktop file
 - Support for Fedora 44+
 - Correct MIME types for STL, OBJ, and 3MF file associations
@@ -63,9 +63,8 @@ sudo dnf install -y rpm-build rpmdevtools git wget curl unzip \
   at-spi2-core-devel libepoxy-devel \
   libspnav-devel libsecret-devel libmspack-devel \
   texinfo chrpath \
-  tbb-devel blosc-devel NLopt-devel opencv-devel \
-  opencascade-devel zlib-ng-compat-devel expat-devel \
-  openvdb-devel mpfr-devel CGAL-devel openexr-devel
+  tbb-devel blosc-devel NLopt-devel cereal-devel \
+  glew-devel gmp-devel mpfr-devel
 
 # Build RPM
 rpmbuild -ba orcaslicer.spec
@@ -95,6 +94,7 @@ Automatically builds for Fedora 43+ from the latest main branch:
 OrcaSlicer-rpm/
 ├── .copr/Makefile         # COPR SRPM build script
 ├── .github/workflows/     # GitHub Actions workflow
+├── patches/               # Build patches for deps
 ├── orcaslicer.spec        # RPM spec file
 ├── CHANGELOG.md           # Project changelog
 └── README.md              # This file
