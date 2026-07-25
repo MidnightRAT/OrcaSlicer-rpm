@@ -75,8 +75,8 @@ Based on PrusaSlicer/BambuStudio, supporting STL, OBJ, 3MF file formats.
 export CMAKE_POLICY_VERSION_MINIMUM=3.5
 
 # Limit parallelism to avoid OOM on CI (GitHub Actions has ~7GB RAM)
-NPROC_DEPS=6
-NPROC_BUILD=6
+NPROC_DEPS=2
+NPROC_BUILD=2
 
 # Build dependencies (skip if already pre-built in SRPM)
 if [ ! -d deps/build ]; then
