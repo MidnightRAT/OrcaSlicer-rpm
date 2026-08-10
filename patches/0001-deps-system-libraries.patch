@@ -1,0 +1,174 @@
+diff --git a/deps/CMakeLists.txt b/deps/CMakeLists.txt
+index dbbf9a0..751edd3 100644
+--- a/deps/CMakeLists.txt
++++ b/deps/CMakeLists.txt
+@@ -315,6 +315,49 @@ if(FLATPAK)
+     find_package(CURL)
+ endif()
+ 
++# RPM/system-devel support: on non-Flatpak Linux builds, consume as many
++# libraries as possible from the distribution's -devel packages.  Every
++# library found below is skipped in the bundled deps build and resolved by
++# the OrcaSlicer top-level build through CMake's system search paths.  When
++# a package is missing, the corresponding `if (NOT <NAME>_FOUND) include(...)`
++# guard silently falls back to the bundled build (see the *_PKG variables).
++if(NOT FLATPAK AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
++    find_package(PNG QUIET)
++    find_package(JPEG QUIET)
++    find_package(Freetype QUIET)
++    find_package(OpenSSL QUIET)
++    find_package(CURL QUIET)
++    find_package(Eigen3 QUIET)
++    find_package(CGAL QUIET)
++    # CGAL >= 6.0 changed the Surface_mesh property_map API (returns
++    # std::optional instead of std::pair).  OrcaSlicer 2.4.2 was written
++    # against the bundled CGAL 5.6.3, so a too-new system CGAL must fall back
++    # to the bundled build instead of breaking CutSurface.cpp compilation.
++    if (CGAL_FOUND AND CGAL_VERSION VERSION_GREATER_EQUAL "6.0")
++        message(STATUS "System CGAL ${CGAL_VERSION} is too new (CGAL >= 6 changed the Surface_mesh property_map API) - using bundled CGAL 5.6.3")
++        unset(CGAL_FOUND)
++        unset(CGAL_DIR)
++    endif ()
++    find_package(cereal QUIET)
++    find_package(NLopt QUIET)
++    find_package(draco QUIET)
++    find_package(Qhull QUIET)
++    find_package(glfw3 QUIET)
++    find_package(OpenCV QUIET)
++
++    # GMP / MPFR ship no find module in this project - probe headers + libs
++    find_path(GMP_INCLUDE_DIR NAMES gmp.h)
++    find_library(GMP_LIBRARY NAMES gmp)
++    if(GMP_INCLUDE_DIR AND GMP_LIBRARY)
++        set(GMP_FOUND TRUE)
++    endif()
++    find_path(MPFR_INCLUDE_DIR NAMES mpfr.h)
++    find_library(MPFR_LIBRARY NAMES mpfr)
++    if(MPFR_INCLUDE_DIR AND MPFR_LIBRARY)
++        set(MPFR_FOUND TRUE)
++    endif()
++endif()
++
+ set(ZLIB_PKG "")
+ if (NOT ZLIB_FOUND)
+     include(ZLIB/ZLIB.cmake)
+@@ -336,11 +379,24 @@ endif ()
+ set(DEP_Boost_COMPONENTS system iostreams filesystem thread log locale regex date_time)
+ include(Boost/Boost.cmake)
+ 
+-include(Cereal/Cereal.cmake)
+-include(Qhull/Qhull.cmake)
++set(CEREAL_PKG "")
++if (NOT cereal_FOUND)
++    include(Cereal/Cereal.cmake)
++    set(CEREAL_PKG dep_Cereal)
++endif ()
++
++set(QHULL_PKG "")
++if (NOT Qhull_FOUND)
++    include(Qhull/Qhull.cmake)
++    set(QHULL_PKG dep_Qhull)
++endif ()
+ include(GLEW/GLEW.cmake)
+ 
+-include(GLFW/GLFW.cmake)
++set(GLFW_PKG "")
++if (NOT glfw3_FOUND)
++    include(GLFW/GLFW.cmake)
++    set(GLFW_PKG dep_GLFW)
++endif ()
+ include(OpenCSG/OpenCSG.cmake)
+ 
+ include(TBB/TBB.cmake)
+@@ -349,15 +405,39 @@ include(Blosc/Blosc.cmake)
+ include(OpenEXR/OpenEXR.cmake)
+ include(OpenVDB/OpenVDB.cmake)
+ 
+-include(GMP/GMP.cmake)
+-include(MPFR/MPFR.cmake)
+-include(Eigen/Eigen.cmake)
+-include(CGAL/CGAL.cmake)
++set(GMP_PKG "")
++if (NOT GMP_FOUND)
++    include(GMP/GMP.cmake)
++    set(GMP_PKG dep_GMP)
++endif ()
++set(MPFR_PKG "")
++if (NOT MPFR_FOUND)
++    include(MPFR/MPFR.cmake)
++    set(MPFR_PKG dep_MPFR)
++endif ()
++set(EIGEN_PKG "")
++if (NOT Eigen3_FOUND)
++    include(Eigen/Eigen.cmake)
++    set(EIGEN_PKG dep_Eigen)
++endif ()
++set(CGAL_PKG "")
++if (NOT CGAL_FOUND)
++    include(CGAL/CGAL.cmake)
++    set(CGAL_PKG dep_CGAL)
++endif ()
+ 
+-include(NLopt/NLopt.cmake)
++set(NLOPT_PKG "")
++if (NOT NLopt_FOUND)
++    include(NLopt/NLopt.cmake)
++    set(NLOPT_PKG dep_NLopt)
++endif ()
+ include(libnoise/libnoise.cmake)
+ 
+-include(Draco/Draco.cmake)
++set(DRACO_PKG "")
++if (NOT draco_FOUND)
++    include(Draco/Draco.cmake)
++    set(DRACO_PKG dep_Draco)
++endif ()
+ 
+ 
+ # I *think* 1.1 is used for *just* md5 hashing?
+@@ -413,7 +493,12 @@ if((REV_PARSE_RESULT EQUAL 0) AND (REV_PARSE_OUTPUT STREQUAL "true"))
+ endif ()
+ 
+ include(OCCT/OCCT.cmake)
+-include(OpenCV/OpenCV.cmake)
++
++set(OPENCV_PKG "")
++if (NOT OpenCV_FOUND)
++    include(OpenCV/OpenCV.cmake)
++    set(OPENCV_PKG dep_OpenCV)
++endif ()
+ 
+ set(_dep_list
+     dep_Boost
+@@ -421,15 +506,15 @@ set(_dep_list
+     ${OPENSSL_PKG}
+     ${CURL_PKG}
+     ${WXWIDGETS_PKG}
+-    dep_Cereal
+-    dep_Draco
+-    dep_NLopt
++    ${CEREAL_PKG}
++    ${DRACO_PKG}
++    ${NLOPT_PKG}
+     dep_OpenVDB
+     dep_OpenCSG
+-    dep_OpenCV
+-    dep_Eigen
+-    dep_CGAL
+-    dep_GLFW
++    ${OPENCV_PKG}
++    ${EIGEN_PKG}
++    ${CGAL_PKG}
++    ${GLFW_PKG}
+     dep_OCCT
+     ${FREETYPE_PKG}
+     ${PNG_PKG}
+@@ -442,7 +527,7 @@ if (MSVC)
+     # Experimental
+     #list(APPEND _dep_list "dep_qhull")
+ else()
+-    list(APPEND _dep_list "dep_Qhull")
++    list(APPEND _dep_list ${QHULL_PKG})
+     # Not working, static build has different Eigen
+     #list(APPEND _dep_list "dep_libigl")
+ endif()

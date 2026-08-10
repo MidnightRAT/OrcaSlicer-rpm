@@ -2,10 +2,10 @@ srpm:
 	set -e; \
 	\
 	echo "=== Installing build tools ==="; \
-	dnf -y install --skip-unavailable rpmdevtools wget curl; \
+	dnf -y install --skip-unavailable rpmdevtools wget curl unzip; \
 	\
 	echo "=== Fetching latest release version ==="; \
-	VERSION=$$(curl -sf https://api.github.com/repos/OrcaSlicer/OrcaSlicer/releases/latest \
+	VERSION=$$(curl -sfL https://api.github.com/repos/OrcaSlicer/OrcaSlicer/releases/latest \
 	  | grep '"tag_name"' | cut -d '"' -f 4 | sed 's/^v//'); \
 	if [ -z "$$VERSION" ]; then \
 	  echo "ERROR: failed to determine latest version from GitHub API"; \
@@ -15,16 +15,17 @@ srpm:
 	\
 	echo "=== Downloading source tarball ==="; \
 	wget -q "https://github.com/OrcaSlicer/OrcaSlicer/archive/refs/tags/v$${VERSION}.tar.gz" \
-	  -O "orcaslicer-$${VERSION}-src.tar.gz"; \
-	ls -lh "orcaslicer-$${VERSION}-src.tar.gz"; \
+	  -O "OrcaSlicer-$${VERSION}.tar.gz"; \
+	ls -lh "OrcaSlicer-$${VERSION}.tar.gz"; \
 	\
 	echo "=== Preparing rpmbuild tree ==="; \
 	rpmdev-setuptree; \
 	mkdir -p "$$HOME/rpmbuild/SOURCES" "$$HOME/rpmbuild/SPECS"; \
-	cp "orcaslicer-$${VERSION}-src.tar.gz" "$$HOME/rpmbuild/SOURCES/"; \
+	cp "OrcaSlicer-$${VERSION}.tar.gz" "$$HOME/rpmbuild/SOURCES/"; \
+	cp README.md "$$HOME/rpmbuild/SOURCES/"; \
 	\
 	echo "=== Copying patches ==="; \
-	for p in patches/000*.patch; do \
+	for p in patches/0*.patch; do \
 	  if [ -f "$$p" ]; then \
 	    cp "$$p" "$$HOME/rpmbuild/SOURCES/"; \
 	    echo "  Copied: $$p"; \
@@ -32,16 +33,16 @@ srpm:
 	done; \
 	\
 	echo "=== Generating spec file from template ==="; \
-	test -f orcaslicer.spec || { echo "ERROR: orcaslicer.spec not found in repo root"; exit 1; }; \
+	test -f orca-slicer.spec || { echo "ERROR: orca-slicer.spec not found in repo root"; exit 1; }; \
 	sed -e "s/@VERSION@/$${VERSION}/g" \
-	    -e "s/@RELEASE@/3/g" \
-	    orcaslicer.spec > "$$HOME/rpmbuild/SPECS/orcaslicer.spec"; \
+	    -e "s/@RELEASE@/5/g" \
+	    orca-slicer.spec > "$$HOME/rpmbuild/SPECS/orca-slicer.spec"; \
 	\
 	echo "=== Building SRPM ==="; \
 	rpmbuild -bs \
 	  --define "_sourcedir $$HOME/rpmbuild/SOURCES" \
 	  --define "_srcrpmdir $(outdir)" \
-	  "$$HOME/rpmbuild/SPECS/orcaslicer.spec"; \
+	  "$$HOME/rpmbuild/SPECS/orca-slicer.spec"; \
 	\
 	echo "=== Done ==="; \
 	ls -la "$(outdir)"

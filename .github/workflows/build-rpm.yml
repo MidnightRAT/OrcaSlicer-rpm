@@ -4,7 +4,6 @@ on:
   push:
     branches: [main]
     paths-ignore:
-      - 'CHANGELOG.md'
       - 'README.md'
       - '.copr/**'
   workflow_dispatch:
@@ -25,38 +24,43 @@ jobs:
       - name: Checkout this repository
         uses: actions/checkout@v4
 
+      - name: Free disk space
+        run: |
+          df -h / /github 2>/dev/null || df -h /
+          rm -rf /usr/share/dotnet /usr/local/lib/android /opt/hostedtoolcache \
+            /usr/share/swift /usr/local/share/powershell /usr/share/powershell \
+            /usr/local/lib/python* /opt/ghc /opt/hostedtoolcache/CodeQL
+          rm -rf /usr/share/doc /usr/share/man /usr/share/info 2>/dev/null || true
+          rm -rf /root/.cache /root/.npm /var/cache /var/lib/apt/lists 2>/dev/null || true
+          dnf -y clean all 2>/dev/null || true
+          df -h / | tail -1
+
       - name: Install build dependencies
         run: |
           dnf install -y \
-            rpm-build rpmdevtools git wget curl unzip \
-            cmake ninja-build gcc gcc-c++ pkgconf \
+            rpm-build rpmdevtools git git-lfs wget curl unzip \
+            cmake ninja-build gcc gcc-c++ make patch pkgconf \
             autoconf automake libtool m4 \
             perl-FindBin perl-IPC-Cmd \
-            libquadmath-devel nasm \
+            texinfo gettext python3 \
+            boost-devel eigen3-devel tbb-devel \
+            glfw-devel glew-devel NLopt-devel CGAL-devel cereal-devel \
+            gmp-devel mpfr-devel qhull-devel draco-devel draco-static \
+            zlib-ng-compat-devel libpng-devel expat-devel freetype-devel \
+            libjpeg-turbo-devel openssl-devel libcurl-devel opencv-devel blosc-devel \
             dbus-devel gtk3-devel webkit2gtk4.1-devel \
-            glew-devel glfw-devel mesa-libGLU-devel mesa-libGL-devel \
-            libjpeg-turbo-devel libpng-devel \
-            openssl-devel libcurl-devel \
-            freetype-devel fontconfig-devel pango-devel \
-            eigen3-devel cereal-devel \
-            extra-cmake-modules eglexternalplatform-devel \
-            gstreamer1-devel gstreamer1-plugins-base-devel gstreamermm-devel \
-            wayland-protocols-devel libxkbcommon-devel \
-            libX11-devel libXi-devel libXrandr-devel libXinerama-devel \
-            libXcursor-devel libXcomposite-devel libXdamage-devel libXext-devel \
-            libXtst-devel libXfixes-devel libXmu-devel \
-            at-spi2-core-devel libepoxy-devel \
-            libspnav-devel libsecret-devel libmspack-devel \
-            texinfo chrpath \
-            tbb-devel blosc-devel NLopt-devel opencv-devel \
-            opencascade-devel zlib-ng-compat-devel expat-devel \
-            openvdb-devel mpfr-devel CGAL-devel openexr-devel
+            mesa-libGLU-devel mesa-libGL-devel libglvnd-devel \
+            wayland-devel wayland-protocols-devel eglexternalplatform-devel \
+            extra-cmake-modules libsecret-devel \
+            gstreamer1-devel gstreamer1-plugins-good gstreamermm-devel \
+            libspnav-devel libmspack-devel libquadmath-devel fontconfig-devel \
+            desktop-file-utils
 
       - name: Get latest release version
         id: version
         run: |
           # Get latest release tag from GitHub API (strip 'v' prefix)
-          LATEST=$(curl -s https://api.github.com/repos/OrcaSlicer/OrcaSlicer/releases/latest | grep '"tag_name"' | cut -d '"' -f 4 | sed 's/^v//')
+          LATEST=$(curl -sL https://api.github.com/repos/OrcaSlicer/OrcaSlicer/releases/latest | grep '"tag_name"' | cut -d '"' -f 4 | sed 's/^v//')
           echo "version=${LATEST}" >> $GITHUB_OUTPUT
           echo "Latest version: ${LATEST}"
 
@@ -65,37 +69,35 @@ jobs:
           VERSION=${{ steps.version.outputs.version }}
           # Download source tarball from release (with 'v' prefix)
           wget -q "https://github.com/OrcaSlicer/OrcaSlicer/archive/refs/tags/v${VERSION}.tar.gz" \
-            -O orcaslicer-${VERSION}-src.tar.gz
+            -O OrcaSlicer-${VERSION}.tar.gz
 
       - name: Prepare RPM build tree
         run: |
           VERSION=${{ steps.version.outputs.version }}
           rpmdev-setuptree
-          cp orcaslicer-${VERSION}-src.tar.gz ~/rpmbuild/SOURCES/
-          cp patches/0001-use-system-libs.patch ~/rpmbuild/SOURCES/
-          cp patches/0002-fix-eigen-deps.patch ~/rpmbuild/SOURCES/
-          cp patches/0003-fix-opencsg-deps.patch ~/rpmbuild/SOURCES/
-          cp patches/0004-fix-opencsg-glew.patch ~/rpmbuild/SOURCES/
-          cp patches/0006-fix-openvdb-deps.patch ~/rpmbuild/SOURCES/
-          cp patches/0007-fix-cgal-deps.patch ~/rpmbuild/SOURCES/
+          cp OrcaSlicer-${VERSION}.tar.gz ~/rpmbuild/SOURCES/
+          cp README.md ~/rpmbuild/SOURCES/
+          for p in patches/0*.patch; do
+            cp "$p" ~/rpmbuild/SOURCES/
+          done
 
       - name: Update spec file with version
         run: |
           VERSION=${{ steps.version.outputs.version }}
           # Create spec file from template with correct version
           sed -e "s/@VERSION@/${VERSION}/g" \
-              -e "s/@RELEASE@/3/g" \
-              orcaslicer.spec > ~/rpmbuild/SPECS/orcaslicer.spec
+              -e "s/@RELEASE@/5/g" \
+              orca-slicer.spec > ~/rpmbuild/SPECS/orca-slicer.spec
 
       - name: Build RPM and SRPM
         run: |
           cd ~/rpmbuild
-          rpmbuild -ba SPECS/orcaslicer.spec
+          rpmbuild -ba SPECS/orca-slicer.spec
 
       - name: Upload RPM artifact
         uses: actions/upload-artifact@v4
         with:
-          name: orcaslicer-rpm
+          name: orca-slicer-rpm
           path: |
             ~/rpmbuild/RPMS/x86_64/*.rpm
             ~/rpmbuild/SRPMS/*.rpm
