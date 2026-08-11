@@ -140,7 +140,7 @@ Automatically:
 
 ### COPR
 
-Automatically builds for Fedora 43+ from the latest main branch:
+Automatically builds for Fedora 44 from the latest main branch:
 
 - [COPR Project Page](https://copr.fedorainfracloud.org/projects/chirikrat/OrcaSlicer-rpm/)
 
