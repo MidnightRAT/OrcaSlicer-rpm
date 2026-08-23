@@ -58,17 +58,27 @@ jobs:
 
       - name: Get latest release version
         id: version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Get latest release tag from GitHub API (strip 'v' prefix)
-          LATEST=$(curl -sL https://api.github.com/repos/OrcaSlicer/OrcaSlicer/releases/latest | grep '"tag_name"' | cut -d '"' -f 4 | sed 's/^v//')
+          # Use authenticated request to avoid rate limiting (60 req/hr unauth)
+          LATEST=$(curl -sL -H "Authorization: token $GH_TOKEN" \
+            https://api.github.com/repos/OrcaSlicer/OrcaSlicer/releases/latest \
+            | grep '"tag_name"' | cut -d '"' -f 4 | sed 's/^v//')
+          if [ -z "$LATEST" ]; then
+            echo "::error::Failed to determine latest OrcaSlicer version"
+            exit 1
+          fi
           echo "version=${LATEST}" >> $GITHUB_OUTPUT
           echo "Latest version: ${LATEST}"
 
       - name: Download source tarball
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION=${{ steps.version.outputs.version }}
-          # Download source tarball from release (with 'v' prefix)
-          wget -q "https://github.com/OrcaSlicer/OrcaSlicer/archive/refs/tags/v${VERSION}.tar.gz" \
+          wget -q --header="Authorization: token $GH_TOKEN" \
+            "https://github.com/OrcaSlicer/OrcaSlicer/archive/refs/tags/v${VERSION}.tar.gz" \
             -O OrcaSlicer-${VERSION}.tar.gz
 
       - name: Prepare RPM build tree
@@ -86,7 +96,7 @@ jobs:
           VERSION=${{ steps.version.outputs.version }}
           # Create spec file from template with correct version
           sed -e "s/@VERSION@/${VERSION}/g" \
-              -e "s/@RELEASE@/5/g" \
+              -e "s/@RELEASE@/6/g" \
               orca-slicer.spec > ~/rpmbuild/SPECS/orca-slicer.spec
 
       - name: Build RPM and SRPM
