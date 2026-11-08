@@ -381,16 +381,21 @@ ln -sfn /usr/bin/python3.12 %{buildroot}/opt/OrcaSlicer/lib/python/bin/python3.1
 %changelog
 * Sat Nov 07 2026 OrcaSlicer RPM Packager <orca@softfever.org> - @VERSION@-@RELEASE@
 - Адаптація під OrcaSlicer 2.5.0 та бібліотеки Fedora 45
-- Нові патчі 0003-0005: системний Python 3.12, системний Boost,
-  умовні install()/POST_BUILD для bundled Python/FFmpeg
+- Нові патчі 0003-0006: системний Python 3.12, системний Boost,
+  умовні install()/POST_BUILD для bundled Python/FFmpeg,
+  сумісність з OCCT 7.9.3 і Boost.Asio 1.90
 - Системні замість бандлів: Python 3.12, FFmpeg 9.0, Assimp 6.0.5,
-  LibDataChannel 0.23.1, OCCT 7.9.3, Blosc 1.21.6, Boost 1.90, uv
+  LibDataChannel 0.23.1, OCCT 7.9.3, Blosc 1.21.6, Boost 1.90, uv, CGAL 6.2.1
 - CGAL 6.2.1 з системи (OrcaSlicer 2.5 вимагає CGAL 6.2); ворота
   інвертовано: bundled-фолбек лише якщо системний CGAL < 6.2
 - Прибрано glew-devel / OpenCSG: GLEW і OpenCSG видалені в 2.5.0
 - Скелет /opt/OrcaSlicer/lib/python -> системна інсталяція Python 3.12
 - Паралелізм винесено в RPM-макрос orca_jobs (2 для CI/COPR,
   локально --define "orca_jobs 12")
+- LTO вимкнено (Fedora auto-LTO вичерпував /tmp при лінкуванні)
+- stubgen-модуль вимкнено (ORCA_BUILD_PYTHON_STUBGEN_MODULE=OFF):
+  static boost_log не лінкується в shared module
+- CI: fedora:45, dnf builddep замість дубльованого списку пакетів
 * Sun Aug 09 2026 OrcaSlicer RPM Packager <orca@softfever.org> - @VERSION@-@RELEASE@
 - Перша версія пакування OrcaSlicer для Fedora (COPR)
 - deps/CMakeLists.txt: максимальне використання системних -devel бібліотек

@@ -190,6 +190,10 @@ OrcaSlicer-rpm/
 └── README.md
 ```
 
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for the full release history.
+
 ## License
 
 AGPL-3.0 (same as OrcaSlicer)
