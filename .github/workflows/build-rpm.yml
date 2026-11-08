@@ -18,7 +18,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: registry.fedoraproject.org/fedora:44
+      image: registry.fedoraproject.org/fedora:45
 
     steps:
       - name: Checkout this repository
@@ -35,26 +35,12 @@ jobs:
           dnf -y clean all 2>/dev/null || true
           df -h / | tail -1
 
-      - name: Install build dependencies
+      # Only the tooling needed to fetch the sources and generate the spec.
+      # Everything the spec actually BuildRequires is installed by
+      # "dnf builddep" below, so the dependency list lives in one place.
+      - name: Install bootstrap tools
         run: |
-          dnf install -y \
-            rpm-build rpmdevtools git git-lfs wget curl unzip \
-            cmake ninja-build gcc gcc-c++ make patch pkgconf \
-            autoconf automake libtool m4 \
-            perl-FindBin perl-IPC-Cmd \
-            texinfo gettext python3 \
-            boost-devel eigen3-devel tbb-devel \
-            glfw-devel glew-devel NLopt-devel CGAL-devel cereal-devel \
-            gmp-devel mpfr-devel qhull-devel draco-devel draco-static \
-            zlib-ng-compat-devel libpng-devel expat-devel freetype-devel \
-            libjpeg-turbo-devel openssl-devel libcurl-devel opencv-devel blosc-devel \
-            dbus-devel gtk3-devel webkit2gtk4.1-devel \
-            mesa-libGLU-devel mesa-libGL-devel libglvnd-devel \
-            wayland-devel wayland-protocols-devel eglexternalplatform-devel \
-            extra-cmake-modules libsecret-devel \
-            gstreamer1-devel gstreamer1-plugins-good gstreamermm-devel \
-            libspnav-devel libmspack-devel libquadmath-devel fontconfig-devel \
-            desktop-file-utils
+          dnf install -y rpm-build rpmdevtools git git-lfs wget curl unzip
 
       - name: Get latest release version
         id: version
@@ -96,8 +82,11 @@ jobs:
           VERSION=${{ steps.version.outputs.version }}
           # Create spec file from template with correct version
           sed -e "s/@VERSION@/${VERSION}/g" \
-              -e "s/@RELEASE@/6/g" \
+              -e "s/@RELEASE@/7/g" \
               orca-slicer.spec > ~/rpmbuild/SPECS/orca-slicer.spec
+
+      - name: Install build dependencies
+        run: dnf builddep -y ~/rpmbuild/SPECS/orca-slicer.spec
 
       - name: Build RPM and SRPM
         run: |

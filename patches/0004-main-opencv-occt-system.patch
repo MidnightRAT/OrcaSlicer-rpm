@@ -1,0 +1,36 @@
+diff --git a/src/libslic3r/CMakeLists.txt b/src/libslic3r/CMakeLists.txt
+index 034f8b57..a042a7b2 100644
+--- a/src/libslic3r/CMakeLists.txt
++++ b/src/libslic3r/CMakeLists.txt
+@@ -625,7 +625,7 @@ cmake_policy(SET CMP0011 NEW)
+ # can't reach it; the default opts its Boost lookup into BoostConfig (CMP0167).
+ set(CMAKE_POLICY_DEFAULT_CMP0167 NEW)
+ find_package(CGAL 6.2 REQUIRED)
+-find_package(OpenCV REQUIRED core)
++find_package(OpenCV REQUIRED core imgproc imgcodecs)
+ find_package(assimp REQUIRED)
+ unset(CMAKE_POLICY_DEFAULT_CMP0167)
+ cmake_policy(POP)
+@@ -683,7 +683,12 @@ target_include_directories(libslic3r PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE
+ target_include_directories(libslic3r SYSTEM PUBLIC ${EXPAT_INCLUDE_DIRS})
+ 
+ # Find the OCCT and related libraries
+-set(OpenCASCADE_DIR "${CMAKE_PREFIX_PATH}/lib/cmake/occt")
++# The bundled OCCT installs its config under the deps prefix; when the build
++# consumes the system opencascade-devel instead, that prefix has no occt config
++# and OpenCASCADE_DIR must not point at a non-existent directory.
++if (EXISTS "${CMAKE_PREFIX_PATH}/lib/cmake/occt/OpenCASCADEConfig.cmake")
++    set(OpenCASCADE_DIR "${CMAKE_PREFIX_PATH}/lib/cmake/occt")
++endif ()
+ find_package(OpenCASCADE REQUIRED)
+ target_include_directories(libslic3r SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
+ 
+@@ -763,7 +768,7 @@ target_link_libraries(libslic3r
+         libigl
+         libnest2d
+         miniz
+-        opencv_world
++        ${OpenCV_LIBRARIES}
+         assimp::assimp
+     PRIVATE
+         ${CMAKE_DL_LIBS}

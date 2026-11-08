@@ -1,0 +1,59 @@
+diff --git a/deps/CGAL/CGAL.cmake b/deps/CGAL/CGAL.cmake
+index a3886383..b886d42f 100644
+--- a/deps/CGAL/CGAL.cmake
++++ b/deps/CGAL/CGAL.cmake
+@@ -9,7 +9,12 @@ orcaslicer_add_cmake_project(
+     # For whatever reason, this keeps downloading forever (repeats downloads if finished)
+     URL      https://github.com/CGAL/cgal/releases/download/v6.2.1/CGAL-6.2.1.zip
+     URL_HASH SHA256=eebd737d9b7f0199647ba5c1f9f6c7a3d0651aacef9c2fd4dedc52da6c25edbe
+-    DEPENDS dep_Boost dep_Eigen dep_GMP dep_MPFR
++    # Only depend on the bundled targets that actually exist: when the
++    # system provides Boost/Eigen/GMP/MPFR (see the RPM system probe in
++    # deps/CMakeLists.txt) the corresponding dep_* targets are skipped and
++    # naming them here would make the superbuild fail with "no rule to make
++    # target".
++    DEPENDS ${BOOST_PKG} ${EIGEN_PKG} ${GMP_PKG} ${MPFR_PKG}
+ )
+ 
+ include(GNUInstallDirs)
+diff --git a/deps/Eigen/Eigen.cmake b/deps/Eigen/Eigen.cmake
+index 2a9cc710..b666fff0 100644
+--- a/deps/Eigen/Eigen.cmake
++++ b/deps/Eigen/Eigen.cmake
+@@ -22,5 +22,7 @@ orcaslicer_add_cmake_project(Eigen
+         -DEIGEN_BUILD_TESTING=OFF
+         -DEIGEN_BUILD_BLAS=OFF
+         -DEIGEN_BUILD_LAPACK=OFF
+-    DEPENDS dep_Boost dep_GMP dep_MPFR
++    # System Boost/GMP/MPFR skip their dep_* targets (RPM system probe), so
++    # only the bundled ones may be named as dependencies.
++    DEPENDS ${BOOST_PKG} ${GMP_PKG} ${MPFR_PKG}
+ )
+diff --git a/deps/MPFR/MPFR.cmake b/deps/MPFR/MPFR.cmake
+index 755a7699..2e2acbc2 100644
+--- a/deps/MPFR/MPFR.cmake
++++ b/deps/MPFR/MPFR.cmake
+@@ -34,6 +34,6 @@ else ()
+                           env "CC=${CMAKE_C_COMPILER}" "CXX=${CMAKE_CXX_COMPILER}" "CFLAGS=${_gmp_ccflags}" "CXXFLAGS=${_gmp_ccflags}" "LDFLAGS=${CMAKE_EXE_LINKER_FLAGS}" ./configure ${_cross_compile_arg} --prefix=${DESTDIR} --enable-shared=no --enable-static=yes --with-gmp=${DESTDIR} ${_gmp_build_tgt}
+         BUILD_COMMAND make -j
+         INSTALL_COMMAND make install
+-        DEPENDS dep_GMP
++        DEPENDS ${GMP_PKG}
+     )
+ endif ()
+diff --git a/deps/OpenVDB/OpenVDB.cmake b/deps/OpenVDB/OpenVDB.cmake
+index df6ad9c9..d8a4f487 100644
+--- a/deps/OpenVDB/OpenVDB.cmake
++++ b/deps/OpenVDB/OpenVDB.cmake
+@@ -15,7 +15,10 @@ orcaslicer_add_cmake_project(OpenVDB
+     URL https://github.com/tamasmeszaros/openvdb/archive/a68fd58d0e2b85f01adeb8b13d7555183ab10aa5.zip 
+     URL_HASH SHA256=f353e7b99bd0cbfc27ac9082de51acf32a8bc0b3e21ff9661ecca6f205ec1d81
+     PATCH_COMMAND git apply ${OPENVDB_DIRECTORY_FLAG} --verbose --ignore-space-change --whitespace=fix ${CMAKE_CURRENT_LIST_DIR}/0001-clang19.patch
+-    DEPENDS dep_TBB dep_Blosc dep_OpenEXR dep_Boost
++    # System Blosc/Boost (RPM system probe) skip their dep_* targets - only
++    # name the bundled ones so the superbuild does not depend on missing
++    # targets. TBB and OpenEXR are always bundled here.
++    DEPENDS dep_TBB ${BLOSC_PKG} dep_OpenEXR ${BOOST_PKG}
+     CMAKE_ARGS
+         -DCMAKE_POSITION_INDEPENDENT_CODE=ON 
+         -DOPENVDB_BUILD_PYTHON_MODULE=OFF

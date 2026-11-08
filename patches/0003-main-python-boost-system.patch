@@ -1,0 +1,151 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 6a3405b0..3bb48e11 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -774,7 +774,11 @@ endif()
+ if(POLICY CMP0167)
+   cmake_policy(SET CMP0167 NEW)
+ endif()
+-set(Boost_NO_SYSTEM_PATHS TRUE)
++# RPM/system build: let the distribution's Boost (boost-devel + boost-static)
++# satisfy this. The bundled Boost is only built when the probe in
++# deps/CMakeLists.txt finds no usable system Boost, so either way exactly one
++# of the two is picked up through CMAKE_PREFIX_PATH.
++set(Boost_NO_SYSTEM_PATHS FALSE)
+ find_package(Boost 1.83.0 REQUIRED COMPONENTS system filesystem thread log log_setup locale regex chrono atomic date_time iostreams program_options nowide)
+ 
+ # Find and configure Eigen3
+@@ -979,12 +983,25 @@ set(_bundled_python_version "3.12.13")
+ set(_bundled_python_abi "312")
+ string(REGEX REPLACE "^([0-9]+\\.[0-9]+)\\..*$" "\\1" _bundled_python_version_short "${_bundled_python_version}")
+ set(_bundled_python_root "${CMAKE_PREFIX_PATH}/libpython")
+-set(Python3_ROOT_DIR "${_bundled_python_root}" CACHE PATH "Root directory for bundled Python" FORCE)
++# The RPM build consumes the distribution's python3.12 instead of the bundled
++# CPython, in which case the deps superbuild leaves ${CMAKE_PREFIX_PATH}/libpython
++# out of the tree. Only pin Python3_ROOT_DIR when the bundled runtime really is
++# there: a dangling hint would hide the system interpreter from FindPython3.
++set(_orca_have_bundled_python FALSE)
++if (EXISTS "${_bundled_python_root}")
++    set(_orca_have_bundled_python TRUE)
++endif ()
++if (_orca_have_bundled_python)
++    set(Python3_ROOT_DIR "${_bundled_python_root}" CACHE PATH "Root directory for bundled Python" FORCE)
++endif ()
+ set(Python3_USE_STATIC_LIBS OFF)
+ set(Python3_FIND_STRATEGY LOCATION)
+ set(Python3_FIND_IMPLEMENTATIONS CPython)
+ 
+-if(WIN32)
++if (NOT _orca_have_bundled_python)
++    # System interpreter (RPM build): nothing to pin here, FindPython3 resolves
++    # the distribution's python3.12 on its own.
++elseif(WIN32)
+     set(_bundled_python_executable "${_bundled_python_root}/python.exe")
+     set(_bundled_python_library "${_bundled_python_root}/libs/python${_bundled_python_abi}.lib")
+     if(EXISTS "${_bundled_python_root}/python_d.exe")
+@@ -1034,9 +1051,20 @@ elseif(APPLE)
+     set(Python3_LIBRARY "${_bundled_python_library}" CACHE FILEPATH "Bundled Python embed library" FORCE)
+ endif()
+ 
+-find_package(Python3 ${_bundled_python_version} EXACT REQUIRED
+-    COMPONENTS Interpreter Development.Embed
+-)
++if (_orca_have_bundled_python)
++    find_package(Python3 ${_bundled_python_version} EXACT REQUIRED
++        COMPONENTS Interpreter Development.Embed
++    )
++else ()
++    # The bundled CPython build is skipped - take the distribution's 3.12
++    # (Fedora python3.12 / python3.12-devel).  A version range is mandatory:
++    # a bare "3.12" means ">= 3.12" and would select Fedora's newer default
++    # python3, while PythonInterpreter.cpp hardcodes the python3.12 stdlib
++    # layout.  CMake < 3.19 has no version ranges (Fedora ships >= 3.19).
++    find_package(Python3 3.12...3.13 REQUIRED
++        COMPONENTS Interpreter Development.Embed
++    )
++endif ()
+ 
+ # Provide a minimal pybind11::embed target sourced from deps_src/pybind11 headers.
+ set(PYBIND11_SOURCE_DIR "${CMAKE_SOURCE_DIR}/deps_src/pybind11")
+@@ -1175,41 +1203,28 @@ function(orcaslicer_copy_sos target config postfix output_sos)
+         set(_out_dir "${CMAKE_CURRENT_BINARY_DIR}")
+     endif ()
+ 
+-    file(COPY ${CMAKE_PREFIX_PATH}/lib/libavformat.so
+-            ${CMAKE_PREFIX_PATH}/lib/libavformat.so.61
+-            ${CMAKE_PREFIX_PATH}/lib/libavformat.so.61.1.100
+-            ${CMAKE_PREFIX_PATH}/lib/libavcodec.so
+-            ${CMAKE_PREFIX_PATH}/lib/libavcodec.so.61
+-            ${CMAKE_PREFIX_PATH}/lib/libavcodec.so.61.3.100
+-            ${CMAKE_PREFIX_PATH}/lib/libavutil.so
+-            ${CMAKE_PREFIX_PATH}/lib/libavutil.so.59
+-            ${CMAKE_PREFIX_PATH}/lib/libavutil.so.59.8.100
+-            ${CMAKE_PREFIX_PATH}/lib/libswscale.so
+-            ${CMAKE_PREFIX_PATH}/lib/libswscale.so.8
+-            ${CMAKE_PREFIX_PATH}/lib/libswscale.so.8.1.100
+-            ${CMAKE_PREFIX_PATH}/lib/libswresample.so
+-            ${CMAKE_PREFIX_PATH}/lib/libswresample.so.5
+-            ${CMAKE_PREFIX_PATH}/lib/libswresample.so.5.1.100
+-         DESTINATION ${_out_dir})
++    # The bundled deps build stages FFmpeg's shared libraries into the deps
++    # prefix. When the system FFmpeg (ffmpeg-free-devel) is used instead, none
++    # of them exist there - copy only what is present and let the binary link
++    # the distribution's libav*.
++    set(_orca_sos libavformat.so libavformat.so.61 libavformat.so.61.1.100
++                 libavcodec.so libavcodec.so.61 libavcodec.so.61.3.100
++                 libavutil.so libavutil.so.59 libavutil.so.59.8.100
++                 libswscale.so libswscale.so.8 libswscale.so.8.1.100
++                 libswresample.so libswresample.so.5 libswresample.so.5.1.100)
++    set(_orca_so_srcs "")
++    set(_orca_so_dsts "")
++    foreach (_orca_so IN LISTS _orca_sos)
++        if (EXISTS "${CMAKE_PREFIX_PATH}/lib/${_orca_so}")
++            list(APPEND _orca_so_srcs "${CMAKE_PREFIX_PATH}/lib/${_orca_so}")
++            list(APPEND _orca_so_dsts "${_out_dir}/${_orca_so}")
++        endif ()
++    endforeach ()
++    if (_orca_so_srcs)
++        file(COPY ${_orca_so_srcs} DESTINATION ${_out_dir})
++    endif ()
+ 
+-    set(${output_sos}
+-        ${_out_dir}/libavformat.so
+-        ${_out_dir}/libavformat.so.61
+-        ${_out_dir}/libavformat.so.61.1.100
+-        ${_out_dir}/libavcodec.so
+-        ${_out_dir}/libavcodec.so.61
+-        ${_out_dir}/libavcodec.so.61.3.100
+-        ${_out_dir}/libavutil.so
+-        ${_out_dir}/libavutil.so.59
+-        ${_out_dir}/libavutil.so.59.8.100
+-        ${_out_dir}/libswscale.so
+-        ${_out_dir}/libswscale.so.8
+-        ${_out_dir}/libswscale.so.8.1.100
+-        ${_out_dir}/libswresample.so
+-        ${_out_dir}/libswresample.so.5
+-        ${_out_dir}/libswresample.so.5.1.100
+-        PARENT_SCOPE
+-    )
++    set(${output_sos} ${_orca_so_dsts} PARENT_SCOPE)
+ endfunction()
+ 
+ # Bundled sources set their own warning flags, and a plain -Wall there means /Wall
+@@ -1350,7 +1365,17 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+     ${LIBDIR_BIN}/libswscale.so.8
+     ${LIBDIR_BIN}/libswscale.so.8.1.100
+     )
+-    install(FILES ${LIBRARY_FILES} DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
++    # Only the bundled FFmpeg lands here; with the system FFmpeg none of these
++    # files exist and install(FILES) must not be handed an empty list.
++    set(_orca_existing_library_files "")
++    foreach (_orca_lib IN LISTS LIBRARY_FILES)
++        if (EXISTS "${_orca_lib}")
++            list(APPEND _orca_existing_library_files "${_orca_lib}")
++        endif ()
++    endforeach ()
++    if (_orca_existing_library_files)
++        install(FILES ${_orca_existing_library_files} DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
++    endif ()
+ endif ()
+ 
+ install(FILES ${CMAKE_SOURCE_DIR}/LICENSE.txt DESTINATION ".")

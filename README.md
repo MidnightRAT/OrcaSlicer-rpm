@@ -11,36 +11,55 @@ RPM packaging for [OrcaSlicer](https://github.com/OrcaSlicer/OrcaSlicer) — ope
 
 ## Dependency strategy
 
-Where possible the package uses **system libraries** from Fedora `-devel` packages:
+Where possible the package uses **system libraries** from Fedora 45 `-devel` packages:
 
+- Python 3.12 (embedded interpreter), FFmpeg 9.0, Assimp 6.0.5, LibDataChannel 0.23,
+  OCCT 7.9.3, Blosc, Boost 1.90 (static), CGAL 6.2.1, OpenCV 4.13, uv
 - OpenSSL, libcurl, libpng, libjpeg-turbo, freetype, expat, zlib-ng
-- Eigen3, cereal (header-only)
-- GMP, MPFR, NLopt, Draco, Qhull, GLFW, OpenCV
+- Eigen3 5.0.1, cereal (header-only), GMP, MPFR, NLopt, Draco, Qhull, GLFW
 
-> **CGAL is a special case.** Fedora ships CGAL 6.1.x, but CGAL ≥ 6 changed the
-> `Surface_mesh::property_map` API (returns `std::optional` instead of a pair),
-> and OrcaSlicer 2.4.2 was written against the bundled CGAL 5.6.3 — building with
-> system CGAL 6 breaks `CutSurface.cpp`. The deps patch probes the system CGAL
-> and **rejects any version ≥ 6.0**, falling back to the bundled CGAL 5.6.3 build.
+> **CGAL.** OrcaSlicer 2.5 requires `find_package(CGAL 6.2)`, and Fedora 45 ships
+> exactly CGAL 6.2.1 — so CGAL is used from the system. The deps patch keeps a
+> version gate: a system CGAL older than 6.2 is rejected and the bundled
+> CGAL 6.2.1 build is used as a fallback instead.
 
 Only libraries with no compatible version in the distribution (or requiring custom patches) are **bundled** via `deps/`:
 
-- Boost 1.84, wxWidgets 3.3.2, OpenVDB (custom `tamasmeszaros` fork), OCCT 7.6.0,
-  OpenEXR 2.5.5, TBB 2021.5, Blosc, GLEW, OpenCSG, libnoise, **CGAL 5.6.3**
+- wxWidgets 3.3.2 (Fedora has wxGTK 3.2), TBB 2021.5 (static),
+  OpenVDB (custom `tamasmeszaros` fork) + OpenEXR 2.5.5 for it,
+  libnoise, SolveSpace/SLVS, wxInspector
 
-The system-detection logic lives in three patches:
+The system-detection logic lives in six patches:
 
 - `patches/0001-deps-system-libraries.patch` — `deps/CMakeLists.txt` probes the
   system for the libraries above on non-Flatpak Linux builds and skips the
-  bundled build for whatever is found (plus the CGAL ≥ 6.0 gate). If a package
+  bundled build for whatever is found (plus the CGAL ≥ 6.2 gate). If a package
   is missing the graph **falls back to the bundled build automatically**
-  (fail-safe, no hard error).
-- `patches/0002-cgal-bundled-depends.patch` — bundled CGAL's external project
-  only depends on `dep_Boost`; Eigen/GMP/MPFR come from the system and their
-  `dep_*` targets may not exist.
-- `patches/0003-main-opencv-system.patch` — Fedora's OpenCV has no
+  (fail-safe, no hard error). Also adds `cmake/modules/FindBlosc.cmake`,
+  because Fedora only ships a `c-blosc-config.cmake` dummy config while
+  OpenVDB needs a `Blosc::blosc` target.
+- `patches/0002-bundled-deps-guard-depends.patch` — bundled `CGAL`/`Eigen`/
+  `OpenVDB`/`MPFR` external projects only depend on the `dep_*` targets that
+  actually exist; the rest (Boost/Eigen/GMP/MPFR/Blosc) come from the system
+  and their targets are skipped.
+- `patches/0003-main-python-boost-system.patch` — the main build uses the
+  distribution's Python 3.12 (version range `3.12...3.13`, since a bare `3.12`
+  means "≥ 3.12" and would pick python3.15) and system Boost
+  (`Boost_NO_SYSTEM_PATHS FALSE`); `Python3_ROOT_DIR` is only pinned when the
+  bundled CPython layout really exists.
+- `patches/0004-main-opencv-occt-system.patch` — Fedora's OpenCV has no
   `opencv_world` target/lib (the bundled one did), so `src/libslic3r/CMakeLists.txt`
-  links `${OpenCV_LIBRARIES}` (core/imgproc/imgcodecs) and adds the include dir.
+  links `${OpenCV_LIBRARIES}` (core/imgproc/imgcodecs); `OpenCASCADE_DIR` is
+  only pinned when the bundled OCCT config is present in the deps prefix.
+- `patches/0005-src-python-ffmpeg-install-guards.patch` — `INSTALL_RPATH` gets
+  `$ORIGIN`, and the POST_BUILD libpython copy / FFmpeg `.so` `install()`s are
+  guarded so they only run when the bundled Python/FFmpeg actually exists.
+- `patches/0006-occt-7.9-boost-asio-compat.patch` — OCCT 7.9 (Fedora) compat:
+  `Standard_Failure::what()` → `GetMessageString()`, the missing
+  `GC_MakeSegment2d.hxx` → `GCE2d_MakeSegment`; Boost.Asio 1.90:
+  `basic_resolver_iterator` → `basic_resolver_results::begin()`.
+  Also disables `ORCA_BUILD_PYTHON_STUBGEN_MODULE` (static boost_log can't be
+  linked into a shared module).
 
 > **Build generator gotcha:** the main build must use **single-config Ninja**
 > (`-G Ninja` + `-DCMAKE_BUILD_TYPE=Release`), **not** upstream's
@@ -55,7 +74,23 @@ The system-detection logic lives in three patches:
 > spec's `%files`, so `rpmbuild` aborts at the packaging phase with
 > *"installed (but not packaged) files"*. The `%install` section removes
 > `%{buildroot}/opt/OrcaSlicer/include` and `%{buildroot}/opt/OrcaSlicer/lib`
-> before packaging.
+> before packaging, then recreates `lib/python` as the system-Python skeleton
+> (see below).
+
+### Embedded Python
+
+The GUI embeds CPython 3.12. The bundled CPython build is skipped in favour of
+Fedora's `python3.12` / `python3.12-devel`, and `%install` creates a skeleton
+that satisfies the `python home` lookup in `PythonInterpreter.cpp` without
+copying any interpreter files into the package:
+
+```
+/opt/OrcaSlicer/lib/python/lib/python3.12 -> /usr/lib64/python3.12
+/opt/OrcaSlicer/lib/python/bin/python3.12 -> /usr/bin/python3.12
+```
+
+Python packages installed from the GUI go through the system `uv`
+(`/usr/bin/uv`, baked in via `-DORCA_BUNDLED_UV_EXECUTABLE`).
 
 ## Installation
 
@@ -77,40 +112,29 @@ sudo dnf install orca-slicer-*.x86_64.rpm
 ### Build from Source
 
 ```bash
-# Install build tools
-sudo dnf install -y rpm-build rpmdevtools git git-lfs wget curl \
-  cmake ninja-build gcc gcc-c++ make patch pkgconf \
-  autoconf automake libtool m4 \
-  perl-FindBin perl-IPC-Cmd \
-  texinfo gettext python3 \
-  boost-devel eigen3-devel tbb-devel \
-  glfw-devel glew-devel NLopt-devel CGAL-devel cereal-devel \
-  gmp-devel mpfr-devel qhull-devel draco-devel draco-static \
-  zlib-ng-compat-devel libpng-devel expat-devel freetype-devel \
-  libjpeg-turbo-devel openssl-devel libcurl-devel opencv-devel blosc-devel \
-  dbus-devel gtk3-devel webkit2gtk4.1-devel \
-  mesa-libGLU-devel mesa-libGL-devel libglvnd-devel \
-  wayland-devel wayland-protocols-devel eglexternalplatform-devel \
-  extra-cmake-modules libsecret-devel \
-  gstreamer1-devel gstreamer1-plugins-good gstreamermm-devel \
-  libspnav-devel libmspack-devel libquadmath-devel fontconfig-devel \
-  desktop-file-utils
+# Bootstrap tools
+sudo dnf install -y rpm-build rpmdevtools git git-lfs wget curl unzip
 
-# Determine version and build RPM
+# Determine version and prepare the rpmbuild tree
 VERSION=$(curl -sL https://api.github.com/repos/OrcaSlicer/OrcaSlicer/releases/latest | grep tag_name | cut -d '"' -f 4 | sed 's/^v//')
 rpmdev-setuptree
 wget -q "https://github.com/OrcaSlicer/OrcaSlicer/archive/refs/tags/v${VERSION}.tar.gz" \
   -O ~/rpmbuild/SOURCES/OrcaSlicer-${VERSION}.tar.gz
 cp README.md ~/rpmbuild/SOURCES/
 cp patches/0*.patch ~/rpmbuild/SOURCES/
-sed -e "s/@VERSION@/${VERSION}/g" -e "s/@RELEASE@/5/g" \
+sed -e "s/@VERSION@/${VERSION}/g" -e "s/@RELEASE@/7/g" \
   orca-slicer.spec > ~/rpmbuild/SPECS/orca-slicer.spec
-rpmbuild -ba ~/rpmbuild/SPECS/orca-slicer.spec
+
+# All BuildRequires come from the spec itself (single source of truth)
+sudo dnf builddep -y ~/rpmbuild/SPECS/orca-slicer.spec
+
+# Build: parallelism defaults to 2 (CI/COPR, 7 GB RAM); use 12 on a big box
+rpmbuild -ba --define "orca_jobs 12" ~/rpmbuild/SPECS/orca-slicer.spec
 ```
 
-> The `%prep`/`%build` downloads and builds the bundled `deps/` (needs network
-> access and lots of RAM); building takes a long time. System libraries are
-> resolved at configure time from the `-devel` packages listed above.
+> The `%build` downloads and builds the bundled `deps/` (needs network access);
+> building takes a long time. System libraries are resolved at configure time
+> from the `-devel` packages installed by `dnf builddep`.
 >
 > `rpmbuild -ba` produces **both** the SRPM (`~/rpmbuild/SRPMS/*.src.rpm`) and
 > the binary RPM (`~/rpmbuild/RPMS/x86_64/*.x86_64.rpm`). Verify the artifacts
@@ -124,9 +148,11 @@ rpmbuild -ba ~/rpmbuild/SPECS/orca-slicer.spec
 > ```
 >
 > > rpmlint reports `dir-or-file-in-opt` errors by design — the package installs
-> > into `/opt/OrcaSlicer`; remaining warnings (`files-duplicate`,
-> > `unstripped-binary-or-object`) come from upstream web assets and the
-> > intentional no-debug/no-strip choice in the spec.
+> > into `/opt/OrcaSlicer`; the remaining findings (`binary-or-shlib-defines-rpath`
+> > for the intentional `$ORIGIN` RUNPATH, `dangling-symlink` for the absolute
+> > system-Python symlinks, `files-duplicate`/`files-duplicated-waste`,
+> > `unstripped-binary-or-object`) come from upstream web assets, the system-
+> > Python skeleton and the intentional no-debug/no-strip choice in the spec.
 
 ## CI/CD
 
@@ -135,12 +161,13 @@ rpmbuild -ba ~/rpmbuild/SPECS/orca-slicer.spec
 Automatically:
 
 1. Checks for new OrcaSlicer releases (weekly schedule)
-2. Builds src.rpm and x86_64.rpm in Fedora 44 container
+2. Builds src.rpm and x86_64.rpm in a Fedora 45 container
+   (`dnf builddep` installs everything the spec requires)
 3. Uploads artifacts to GitHub Releases
 
 ### COPR
 
-Automatically builds for Fedora 44 from the latest main branch:
+Automatically builds for Fedora 45 from the latest main branch:
 
 - [COPR Project Page](https://copr.fedorainfracloud.org/projects/chirikrat/OrcaSlicer-rpm/)
 
@@ -152,11 +179,14 @@ Automatically builds for Fedora 44 from the latest main branch:
 OrcaSlicer-rpm/
 ├── .copr/Makefile              # COPR SRPM build script
 ├── .github/workflows/          # GitHub Actions workflow
-├── orca-slicer.spec            # RPM spec file
+├── orca-slicer.spec            # RPM spec file (template: @VERSION@ / @RELEASE@ = 7)
 ├── patches/
 │   ├── 0001-deps-system-libraries.patch
-│   ├── 0002-cgal-bundled-depends.patch
-│   └── 0003-main-opencv-system.patch
+│   ├── 0002-bundled-deps-guard-depends.patch
+│   ├── 0003-main-python-boost-system.patch
+│   ├── 0004-main-opencv-occt-system.patch
+│   ├── 0005-src-python-ffmpeg-install-guards.patch
+│   └── 0006-occt-7.9-boost-asio-compat.patch
 └── README.md
 ```
 

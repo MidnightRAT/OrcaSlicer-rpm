@@ -1,0 +1,118 @@
+diff --git a/src/libslic3r/CAD/CadDocument.cpp b/src/libslic3r/CAD/CadDocument.cpp
+index 7e85dd81..f9d35ee3 100644
+--- a/src/libslic3r/CAD/CadDocument.cpp
++++ b/src/libslic3r/CAD/CadDocument.cpp
+@@ -57,7 +57,14 @@
+ #include <Geom_ConicalSurface.hxx>
+ #include <Geom2d_TrimmedCurve.hxx>
+ #include <GeomAbs_Shape.hxx>        // SurfaceFill: GeomAbs_C0
++#if OCC_VERSION_HEX >= 0x080000
+ #include <GC_MakeSegment2d.hxx>
++#else
++// OCCT 7.x (Fedora opencascade) has no GC_MakeSegment2d - the equivalent
++// two-point 2D segment construction lives in GCE2d_MakeSegment and yields
++// the same Handle(Geom2d_TrimmedCurve).
++#include <GCE2d_MakeSegment.hxx>
++#endif
+ #include <TopoDS_Edge.hxx>
+ #include <TopoDS_Face.hxx>
+ #include <TopAbs.hxx>
+@@ -114,6 +121,18 @@ namespace Slic3r {
+ 
+ // ---- helical-thread construction helpers (file-local) ----------------------
+ 
++// 2D segment between two points of a surface parametrization. OCCT 8 added
++// GC_MakeSegment2d; on 7.x the same Handle(Geom2d_TrimmedCurve) comes from
++// GCE2d_MakeSegment (both expose a conversion operator to that handle).
++static Handle(Geom2d_TrimmedCurve) make_segment_2d(const gp_Pnt2d& p0, const gp_Pnt2d& p1)
++{
++#if OCC_VERSION_HEX >= 0x080000
++    return GC_MakeSegment2d(p0, p1);
++#else
++    return GCE2d_MakeSegment(p0, p1);
++#endif
++}
++
+ // Helix spine on a cylinder (radius/pitch/height) about `axis`, as a wire.
+ static TopoDS_Wire make_helix_wire(const gp_Ax3& axis, double radius,
+                                    double pitch, double height)
+@@ -123,7 +142,7 @@ static TopoDS_Wire make_helix_wire(const gp_Ax3& axis, double radius,
+     // In the surface (u,v) parametrization u is the angle, v the axial height.
+     gp_Pnt2d p0(0.0, 0.0);
+     gp_Pnt2d p1(2.0 * M_PI * turns, height);
+-    Handle(Geom2d_TrimmedCurve) seg = GC_MakeSegment2d(p0, p1);
++    Handle(Geom2d_TrimmedCurve) seg = make_segment_2d(p0, p1);
+     TopoDS_Edge e = BRepBuilderAPI_MakeEdge(seg, cyl).Edge();
+     BRepLib::BuildCurves3d(e);
+     return BRepBuilderAPI_MakeWire(e).Wire();
+@@ -165,14 +184,14 @@ static TopoDS_Wire make_helix_spine(const CadFeature& f, std::string& err)
+         double u1 = f.helix_left_handed ? -2.0 * M_PI * turns : 2.0 * M_PI * turns;
+         gp_Pnt2d p0(0.0, 0.0);
+         gp_Pnt2d p1(u1, H);
+-        Handle(Geom2d_TrimmedCurve) seg = GC_MakeSegment2d(p0, p1);
++        Handle(Geom2d_TrimmedCurve) seg = make_segment_2d(p0, p1);
+         e = BRepBuilderAPI_MakeEdge(seg, cone).Edge();
+     } else {
+         Handle(Geom_CylindricalSurface) cyl = new Geom_CylindricalSurface(ax3, R);
+         double u1 = f.helix_left_handed ? -2.0 * M_PI * turns : 2.0 * M_PI * turns;
+         gp_Pnt2d p0(0.0, 0.0);
+         gp_Pnt2d p1(u1, H);
+-        Handle(Geom2d_TrimmedCurve) seg = GC_MakeSegment2d(p0, p1);
++        Handle(Geom2d_TrimmedCurve) seg = make_segment_2d(p0, p1);
+         e = BRepBuilderAPI_MakeEdge(seg, cyl).Edge();
+     }
+     BRepLib::BuildCurves3d(e);
+diff --git a/src/libslic3r/CAD/GeometryEngine.cpp b/src/libslic3r/CAD/GeometryEngine.cpp
+index 34176263..8fea5960 100644
+--- a/src/libslic3r/CAD/GeometryEngine.cpp
++++ b/src/libslic3r/CAD/GeometryEngine.cpp
+@@ -86,7 +86,14 @@ std::vector<TopoDS_Shape> GeometryEngine::read_step_solids(const std::string& pa
+         if (out.empty())
+             out.push_back(shape);
+     } catch (const Standard_Failure& e) {
+-        err = *e.what() ? e.what() : _u8L("OCCT failed to read STEP");
++        // OCCT 8 made Standard_Failure derive from std::exception and gave it
++        // what(); OCCT 7.x (Fedora's opencascade) only has GetMessageString().
++#if OCC_VERSION_HEX >= 0x080000
++        const char* msg = e.what();
++#else
++        const char* msg = e.GetMessageString();
++#endif
++        err = (msg && *msg) ? msg : _u8L("OCCT failed to read STEP");
+         out.clear();
+     }
+     return out;
+diff --git a/src/slic3r/GUI/CAD/McpControl.cpp b/src/slic3r/GUI/CAD/McpControl.cpp
+index 42f97785..0034827c 100644
+--- a/src/slic3r/GUI/CAD/McpControl.cpp
++++ b/src/slic3r/GUI/CAD/McpControl.cpp
+@@ -2131,8 +2131,14 @@ std::string handle_on_main(const std::string& method, const json& params, const
+         if (method == "mate")          return rpc_result(id, action_mate(panel, params));
+         if (method == "check_interference") return rpc_result(id, action_check_interference(panel, params));
+         return rpc_error(id, -32601, "Unknown method: " + method);
+-    } catch (const Standard_Failure& ex) {   // derives from std::exception, so it comes first
+-        return rpc_error(id, -32000, std::string("OCCT: ") + (*ex.what() ? ex.what() : "failure"));
++    } catch (const Standard_Failure& ex) {   // first: on OCCT >= 8 it derives from std::exception
++        // what() only exists on OCCT 8; 7.x (Fedora opencascade) has GetMessageString().
++#if OCC_VERSION_HEX >= 0x080000
++        const char* msg = ex.what();
++#else
++        const char* msg = ex.GetMessageString();
++#endif
++        return rpc_error(id, -32000, std::string("OCCT: ") + ((msg && *msg) ? msg : "failure"));
+     } catch (const std::exception& ex) {
+         return rpc_error(id, -32000, ex.what());
+     }
+diff --git a/src/slic3r/Utils/TCPConsole.cpp b/src/slic3r/Utils/TCPConsole.cpp
+index 45192c27..718f10c8 100644
+--- a/src/slic3r/Utils/TCPConsole.cpp
++++ b/src/slic3r/Utils/TCPConsole.cpp
+@@ -172,7 +172,7 @@ bool TCPConsole::run_queue()
+ 
+         auto endpoints = m_resolver.resolve(m_host_name, m_port_name);
+ 
+-        m_socket.async_connect(endpoints->endpoint(),
++        m_socket.async_connect(endpoints.begin()->endpoint(),
+             boost::bind(&TCPConsole::handle_connect, this, boost::placeholders::_1)
+         );
+ 

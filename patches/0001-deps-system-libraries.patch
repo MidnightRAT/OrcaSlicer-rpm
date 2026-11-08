@@ -1,31 +1,103 @@
+diff --git a/cmake/modules/FindBlosc.cmake b/cmake/modules/FindBlosc.cmake
+new file mode 100644
+index 00000000..52bc2f20
+--- /dev/null
++++ b/cmake/modules/FindBlosc.cmake
+@@ -0,0 +1,65 @@
++# Locate the Blosc compression library.
++#
++# Fedora ships a dummy config file named c-blosc-config.cmake that only exports
++# a c-blosc::c-blosc pkg-config alias, so neither BloscConfig.cmake nor
++# blosc-config.cmake exists and find_package(Blosc) has nothing to load in
++# config mode. This module therefore does the search itself and exports the
++# Blosc::blosc target that OpenVDB and FindOpenVDB expect.
++#
++# Result variables:
++#   Blosc_FOUND
++#   Blosc_VERSION
++#   Blosc_INCLUDE_DIR
++#   Blosc_LIBRARY
++#
++# Imported target: Blosc::blosc
++
++find_package(PkgConfig QUIET)
++if (PkgConfig_FOUND)
++    pkg_check_modules(PC_BLOSC QUIET blosc)
++endif ()
++
++find_path(Blosc_INCLUDE_DIR
++    NAMES blosc.h
++    HINTS ${PC_BLOSC_INCLUDE_DIRS}
++)
++find_library(Blosc_LIBRARY
++    NAMES blosc
++    HINTS ${PC_BLOSC_LIBRARY_DIRS}
++)
++
++set(Blosc_VERSION ${PC_BLOSC_VERSION})
++if (NOT Blosc_VERSION AND Blosc_INCLUDE_DIR AND EXISTS "${Blosc_INCLUDE_DIR}/blosc.h")
++    # No usable blosc.pc - read the version straight out of the header.
++    file(STRINGS "${Blosc_INCLUDE_DIR}/blosc.h" _blosc_version_major
++        REGEX "^#define[ \t]+BLOSC_VERSION_MAJOR[ \t]+[0-9]+")
++    file(STRINGS "${Blosc_INCLUDE_DIR}/blosc.h" _blosc_version_minor
++        REGEX "^#define[ \t]+BLOSC_VERSION_MINOR[ \t]+[0-9]+")
++    file(STRINGS "${Blosc_INCLUDE_DIR}/blosc.h" _blosc_version_release
++        REGEX "^#define[ \t]+BLOSC_VERSION_RELEASE[ \t]+[0-9]+")
++    string(REGEX REPLACE ".*[ \t]([0-9]+)$" "\\1" _blosc_version_major "${_blosc_version_major}")
++    string(REGEX REPLACE ".*[ \t]([0-9]+)$" "\\1" _blosc_version_minor "${_blosc_version_minor}")
++    string(REGEX REPLACE ".*[ \t]([0-9]+)$" "\\1" _blosc_version_release "${_blosc_version_release}")
++    if (_blosc_version_major)
++        set(Blosc_VERSION "${_blosc_version_major}.${_blosc_version_minor}.${_blosc_version_release}")
++    endif ()
++    unset(_blosc_version_major)
++    unset(_blosc_version_minor)
++    unset(_blosc_version_release)
++endif ()
++
++include(FindPackageHandleStandardArgs)
++find_package_handle_standard_args(Blosc
++    REQUIRED_VARS Blosc_LIBRARY Blosc_INCLUDE_DIR
++    VERSION_VAR Blosc_VERSION
++)
++
++if (Blosc_FOUND AND NOT TARGET Blosc::blosc)
++    add_library(Blosc::blosc UNKNOWN IMPORTED)
++    set_target_properties(Blosc::blosc PROPERTIES
++        IMPORTED_LOCATION "${Blosc_LIBRARY}"
++        INTERFACE_INCLUDE_DIRECTORIES "${Blosc_INCLUDE_DIR}"
++    )
++endif ()
++
++mark_as_advanced(Blosc_INCLUDE_DIR Blosc_LIBRARY)
 diff --git a/deps/CMakeLists.txt b/deps/CMakeLists.txt
-index dbbf9a0..751edd3 100644
+index 2b4055f7..d0ef471f 100644
 --- a/deps/CMakeLists.txt
 +++ b/deps/CMakeLists.txt
-@@ -315,6 +315,49 @@ if(FLATPAK)
+@@ -355,6 +355,80 @@ if(FLATPAK)
      find_package(CURL)
  endif()
  
-+# RPM/system-devel support: on non-Flatpak Linux builds, consume as many
-+# libraries as possible from the distribution's -devel packages.  Every
-+# library found below is skipped in the bundled deps build and resolved by
-+# the OrcaSlicer top-level build through CMake's system search paths.  When
-+# a package is missing, the corresponding `if (NOT <NAME>_FOUND) include(...)`
-+# guard silently falls back to the bundled build (see the *_PKG variables).
++# RPM/system-devel support: on non-Flatpak Linux builds consume as many
++# libraries as possible from the distribution's -devel packages.  Every library
++# found below is skipped in the bundled deps build and resolved by the
++# OrcaSlicer top-level build through CMake's normal search paths.  When a
++# package is missing, the corresponding `if (NOT <NAME>_FOUND) include(...)`
++# guard falls back to the bundled build (fail-safe, no hard error).
++# Only libraries with no compatible RPM in the distribution stay bundled:
++# wxWidgets 3.3, TBB (static), the custom OpenVDB fork, OpenEXR 2.x for that
++# fork, libnoise, SolveSpace and wxInspector.
 +if(NOT FLATPAK AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
 +    find_package(PNG QUIET)
 +    find_package(JPEG QUIET)
-+    find_package(Freetype QUIET)
 +    find_package(OpenSSL QUIET)
 +    find_package(CURL QUIET)
 +    find_package(Eigen3 QUIET)
 +    find_package(CGAL QUIET)
-+    # CGAL >= 6.0 changed the Surface_mesh property_map API (returns
-+    # std::optional instead of std::pair).  OrcaSlicer 2.4.2 was written
-+    # against the bundled CGAL 5.6.3, so a too-new system CGAL must fall back
-+    # to the bundled build instead of breaking CutSurface.cpp compilation.
-+    if (CGAL_FOUND AND CGAL_VERSION VERSION_GREATER_EQUAL "6.0")
-+        message(STATUS "System CGAL ${CGAL_VERSION} is too new (CGAL >= 6 changed the Surface_mesh property_map API) - using bundled CGAL 5.6.3")
++    # OrcaSlicer 2.5 requires CGAL >= 6.2 (find_package(CGAL 6.2 REQUIRED)).
++    # An older system CGAL must fall back to the bundled build instead of
++    # failing the main configure step.
++    if (CGAL_FOUND AND CGAL_VERSION VERSION_LESS "6.2")
++        message(STATUS "System CGAL ${CGAL_VERSION} is older than 6.2 - using bundled CGAL")
 +        unset(CGAL_FOUND)
 +        unset(CGAL_DIR)
 +    endif ()
@@ -35,6 +107,36 @@ index dbbf9a0..751edd3 100644
 +    find_package(Qhull QUIET)
 +    find_package(glfw3 QUIET)
 +    find_package(OpenCV QUIET)
++    find_package(assimp QUIET)
++    find_package(OpenCASCADE QUIET)
++    find_package(LibDataChannel CONFIG QUIET)
++    # No FindBlosc module and no blosc-config.cmake in the distribution -
++    # probe the header/library directly (same fallback FindOpenVDB uses).
++    find_path(Blosc_INCLUDE_DIR blosc.h)
++    find_library(Blosc_LIBRARY NAMES blosc)
++    if (Blosc_INCLUDE_DIR AND Blosc_LIBRARY)
++        set(Blosc_FOUND TRUE)
++    endif ()
++
++    # Boost: SLIC3R_STATIC=1 links Boost statically, so only a static system
++    # Boost (boost-static) may replace the bundled 1.84 build.
++    set(Boost_USE_STATIC_LIBS ON)
++    find_package(Boost 1.83 QUIET
++        COMPONENTS system filesystem thread log log_setup locale regex
++                   chrono atomic date_time iostreams program_options nowide)
++
++    # FFmpeg (libav*) through pkg-config; the bundled build is skipped when the
++    # system's ffmpeg-free-devel provides the four libraries the GUI links.
++    find_package(PkgConfig QUIET)
++    if (PkgConfig_FOUND)
++        pkg_check_modules(SYSTEM_FFMPEG QUIET libavformat libavcodec libswscale libavutil)
++    endif ()
++
++    # Python: the main build needs an embedded 3.12 interpreter.  Fedora ships
++    # python3.12/python3.12-devel, so the (slow, PGO-enabled) bundled CPython
++    # build is unnecessary.  The version range is required: a bare "3.12" means
++    # ">= 3.12" and would happily match Fedora's newer default python3.
++    find_package(Python3 3.12...3.13 QUIET COMPONENTS Interpreter Development.Embed)
 +
 +    # GMP / MPFR ship no find module in this project - probe headers + libs
 +    find_path(GMP_INCLUDE_DIR NAMES gmp.h)
@@ -52,35 +154,53 @@ index dbbf9a0..751edd3 100644
  set(ZLIB_PKG "")
  if (NOT ZLIB_FOUND)
      include(ZLIB/ZLIB.cmake)
-@@ -336,11 +379,24 @@ endif ()
- set(DEP_Boost_COMPONENTS system iostreams filesystem thread log locale regex date_time)
- include(Boost/Boost.cmake)
+@@ -373,13 +447,31 @@ if (NOT EXPAT_FOUND)
+ endif ()
  
--include(Cereal/Cereal.cmake)
--include(Qhull/Qhull.cmake)
+ # The order of includes respects the dependencies between libraries
+-set(DEP_Boost_COMPONENTS system iostreams filesystem thread log locale regex date_time)
+-include(Boost/Boost.cmake)
++set(BOOST_PKG "")
++if (NOT Boost_FOUND)
++    set(DEP_Boost_COMPONENTS system iostreams filesystem thread log locale regex date_time)
++    include(Boost/Boost.cmake)
++    set(BOOST_PKG dep_Boost)
++endif ()
++
 +set(CEREAL_PKG "")
 +if (NOT cereal_FOUND)
 +    include(Cereal/Cereal.cmake)
 +    set(CEREAL_PKG dep_Cereal)
 +endif ()
-+
+ 
+-include(Cereal/Cereal.cmake)
+-include(Qhull/Qhull.cmake)
 +set(QHULL_PKG "")
 +if (NOT Qhull_FOUND)
 +    include(Qhull/Qhull.cmake)
 +    set(QHULL_PKG dep_Qhull)
 +endif ()
- include(GLEW/GLEW.cmake)
- 
--include(GLFW/GLFW.cmake)
++
 +set(GLFW_PKG "")
 +if (NOT glfw3_FOUND)
 +    include(GLFW/GLFW.cmake)
 +    set(GLFW_PKG dep_GLFW)
 +endif ()
- include(OpenCSG/OpenCSG.cmake)
+ 
+-include(GLFW/GLFW.cmake)
+ set(SLVS_PKG "")
+ if (SLIC3R_CAD)
+     include(SLVS/SLVS.cmake)
+@@ -388,19 +480,49 @@ endif ()
  
  include(TBB/TBB.cmake)
-@@ -349,15 +405,39 @@ include(Blosc/Blosc.cmake)
+ 
+-include(Blosc/Blosc.cmake)
++set(BLOSC_PKG "")
++if (NOT Blosc_FOUND)
++    include(Blosc/Blosc.cmake)
++    set(BLOSC_PKG dep_Blosc)
++endif ()
  include(OpenEXR/OpenEXR.cmake)
  include(OpenVDB/OpenVDB.cmake)
  
@@ -89,12 +209,14 @@ index dbbf9a0..751edd3 100644
 -include(Eigen/Eigen.cmake)
 -include(CGAL/CGAL.cmake)
 +set(GMP_PKG "")
-+if (NOT GMP_FOUND)
++set(MPFR_PKG "")
++if (NOT GMP_FOUND OR NOT MPFR_FOUND)
++    # The bundled MPFR configures with --with-gmp=${DESTDIR}, i.e. it needs the
++    # bundled GMP, so the two are bundled together or not at all.
++    set(GMP_FOUND TRUE)
++    set(MPFR_FOUND TRUE)
 +    include(GMP/GMP.cmake)
 +    set(GMP_PKG dep_GMP)
-+endif ()
-+set(MPFR_PKG "")
-+if (NOT MPFR_FOUND)
 +    include(MPFR/MPFR.cmake)
 +    set(MPFR_PKG dep_MPFR)
 +endif ()
@@ -124,23 +246,68 @@ index dbbf9a0..751edd3 100644
 +    set(DRACO_PKG dep_Draco)
 +endif ()
  
- 
  # I *think* 1.1 is used for *just* md5 hashing?
-@@ -413,7 +493,12 @@ if((REV_PARSE_RESULT EQUAL 0) AND (REV_PARSE_OUTPUT STREQUAL "true"))
+ # 3.1 has everything in the right place, but the md5 funcs used are deprecated
+@@ -412,11 +534,23 @@ if(NOT OPENSSL_FOUND)
+     set(OPENSSL_PKG dep_OpenSSL)
+ endif()
+ 
+-include(FFMPEG/FFMPEG.cmake)
+-include(Assimp/Assimp.cmake)
++set(FFMPEG_PKG "")
++if (NOT SYSTEM_FFMPEG_FOUND)
++    include(FFMPEG/FFMPEG.cmake)
++    set(FFMPEG_PKG dep_FFMPEG)
++endif ()
+ 
+-include(DataChannel/DataChannel.cmake)
+-set(DATACHANNEL_PKG dep_DataChannel)
++set(ASSIMP_PKG "")
++if (NOT assimp_FOUND)
++    include(Assimp/Assimp.cmake)
++    set(ASSIMP_PKG dep_Assimp)
++endif ()
++
++set(DATACHANNEL_PKG "")
++if (NOT LibDataChannel_FOUND)
++    include(DataChannel/DataChannel.cmake)
++    set(DATACHANNEL_PKG dep_DataChannel)
++endif ()
+ 
+ # we don't want to load a "wrong" openssl when loading curl
+ # so, just don't even bother
+@@ -454,35 +588,51 @@ if((REV_PARSE_RESULT EQUAL 0) AND (REV_PARSE_OUTPUT STREQUAL "true"))
+     file(RELATIVE_PATH BINARY_DIR_REL  ${CMAKE_SOURCE_DIR}/.. ${CMAKE_BINARY_DIR})
  endif ()
  
- include(OCCT/OCCT.cmake)
+-include(OCCT/OCCT.cmake)
 -include(OpenCV/OpenCV.cmake)
+-include(python3/python3.cmake)
++set(OCCT_PKG "")
++if (NOT OpenCASCADE_FOUND)
++    include(OCCT/OCCT.cmake)
++    set(OCCT_PKG dep_OCCT)
++endif ()
 +
 +set(OPENCV_PKG "")
 +if (NOT OpenCV_FOUND)
 +    include(OpenCV/OpenCV.cmake)
 +    set(OPENCV_PKG dep_OpenCV)
 +endif ()
++
++set(PYTHON3_PKG dep_python3)
++if (Python3_FOUND)
++    # System python3.12: no bundled interpreter to build.
++    set(PYTHON3_PKG "")
++else ()
++    include(python3/python3.cmake)
++endif ()
+ include(wxInspector/wxInspector.cmake)
  
  set(_dep_list
-     dep_Boost
-@@ -421,15 +506,15 @@ set(_dep_list
+-    dep_Boost
++    ${BOOST_PKG}
+     dep_TBB
      ${OPENSSL_PKG}
      ${CURL_PKG}
      ${WXWIDGETS_PKG}
@@ -151,19 +318,32 @@ index dbbf9a0..751edd3 100644
 +    ${DRACO_PKG}
 +    ${NLOPT_PKG}
      dep_OpenVDB
-     dep_OpenCSG
+     ${SLVS_PKG}
 -    dep_OpenCV
 -    dep_Eigen
 -    dep_CGAL
 -    dep_GLFW
+-    dep_OCCT
 +    ${OPENCV_PKG}
 +    ${EIGEN_PKG}
 +    ${CGAL_PKG}
 +    ${GLFW_PKG}
-     dep_OCCT
-     ${FREETYPE_PKG}
++    ${OCCT_PKG}
      ${PNG_PKG}
-@@ -442,7 +527,7 @@ if (MSVC)
+     ${ZLIB_PKG}
+     ${EXPAT_PKG}
+     dep_libnoise
+-    dep_python3
++    ${PYTHON3_PKG}
+     dep_wxInspector
+-    dep_FFMPEG
+-    dep_Assimp
++    ${FFMPEG_PKG}
++    ${ASSIMP_PKG}
+     ${DATACHANNEL_PKG}
+     )
+ 
+@@ -490,7 +640,7 @@ if (MSVC)
      # Experimental
      #list(APPEND _dep_list "dep_qhull")
  else()

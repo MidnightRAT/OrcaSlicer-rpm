@@ -4,27 +4,47 @@
 # Версія: @VERSION@
 # Встановлення: /opt/OrcaSlicer
 # Стратегія залежностей: максимальне використання системних бібліотек
-#   (-devel пакети Fedora), бундлюються лише ті, яких немає у сумісній
-#   версії в дистрибутиві (Boost 1.84, wxWidgets 3.3.2, OpenVDB custom fork,
-#   OCCT 7.6, OpenEXR 2.5.5, TBB 2021.5, Blosc, GLEW, OpenCSG, libnoise).
+#   (-devel пакети Fedora 45). Бундлюються лише ті бібліотеки, для яких
+#   у дистрибутиві немає сумісного RPM-пакета:
+#     wxWidgets 3.3        (Fedora 45 має wxGTK 3.2.11, main вимагає 3.3),
+#     TBB 2021.5           (потрібен статичний, у Fedora лише shared),
+#     OpenVDB custom fork  (tamasmeszaros; RPM є лише для апстріму 13.x),
+#     OpenEXR 2.5.5        (його потребує той форк; у Fedora 3.4),
+#     libnoise             (RPM немає),
+#     SolveSpace / SLVS    (RPM немає),
+#     wxInspector          (RPM немає).
+#   Решта, включно з Python 3.12, FFmpeg, Assimp, LibDataChannel, OCCT,
+#   Blosc, Boost, CGAL, OpenCV, береться з системи.
 #
 # Patches:
 #   0001 — deps/CMakeLists.txt: виявлення системних бібліотек (не-FLATPAK):
-#         OpenSSL, CURL, PNG, JPEG, Freetype, Eigen3, CGAL, Cereal, NLopt,
-#         Draco, Qhull, GLFW, OpenCV, GMP, MPFR. Якщо пакета немає —
-#         повернення до bundled-збірки (fail-safe).
-#         Також: система-ворот CGAL >= 6.0.0. У CGAL 6 змінено API
-#         Surface_mesh::property_map (повертає std::optional замість pair),
-#         а OrcaSlicer 2.4.2 писався під bundled CGAL 5.6.3 — тому занадто
-#         новий системний CGAL ігнорується і будується bundled 5.6.3
-#         (інакше не збирається CutSurface.cpp).
-#   0002 — deps/CGAL/CGAL.cmake: bundled CGAL залежить лише від dep_Boost.
-#         Eigen/GMP/MPFR беруться з системи, тому додаткові dep_*-цілі
-#         (dep_Eigen/dep_GMP/dep_MPFR) можуть не існувати.
-#   0003 — src/libslic3r/CMakeLists.txt: системний OpenCV Fedora не має
-#         target/lib `opencv_world` (bundled OpenCV його створював).
-#         Замінюємо `opencv_world` на {OpenCV_LIBRARIES} (opencv_core,
-#         opencv_imgproc, opencv_imgcodecs) і додаємо include-шлях.
+#         PNG, JPEG, OpenSSL, CURL, Eigen3, CGAL (>= 6.2), cereal, NLopt,
+#         Draco, Qhull, GLFW, OpenCV, Assimp, OpenCASCADE, LibDataChannel,
+#         Blosc, Boost (статичний), FFmpeg (pkg-config), Python3 3.12,
+#         GMP, MPFR. Якщо пакета немає — повернення до bundled-збірки
+#         (fail-safe). Ворота CGAL: системний CGAL < 6.2 відкидається
+#         (OrcaSlicer 2.5 вимагає find_package(CGAL 6.2)).
+#   0002 — deps/{CGAL,Eigen,OpenVDB,MPFR}/*.cmake: DEPENDS тепер посилається
+#         лише на ті dep_*-цілі, які реально існують (побудовані), а не на
+#         ті, що замінені системними пакетами.
+#   0003 — CMakeLists.txt: системний Python 3.12 (версійний діапазон
+#         3.12...3.13, бо "3.12" означає ">= 3.12" і вибрав би python3.15),
+#         Python3_ROOT_DIR лише якщо bundled-розкладка реально існує,
+#         Boost_NO_SYSTEM_PATHS=FALSE (системний boost-devel/boost-static).
+#   0004 — src/libslic3r/CMakeLists.txt: opencv_world -> ${OpenCV_LIBRARIES}
+#         (системний OpenCV не має target opencv_world), OpenCASCADE_DIR
+#         лише якщо bundled OCCT є в префіксі deps.
+#   0005 — src/CMakeLists.txt: INSTALL_RPATH додає $ORIGIN, POST_BUILD-копія
+#         libpython та install() FFmpeg .so виконуються лише якщо відповідні
+#         файли існують (системний Python/FFmpeg їх не створює).
+#   0006 — OCCT 7.9.3 (Fedora) та Boost.Asio 1.90: Standard_Failure::what()
+#         -> GetMessageString(), GC_MakeSegment2d -> GCE2d_MakeSegment;
+#         basic_resolver_iterator -> basic_resolver_results::begin().
+#         ORCA_BUILD_PYTHON_STUBGEN_MODULE=OFF (static boost_log не лінкується
+#         в shared module).
+#
+# Паралелізм: за замовчуванням 2 (GitHub Actions/COPR, 7 ГБ RAM).
+# Локально: rpmbuild -ba --define "orca_jobs 12"
 
 Name:           orca-slicer
 Version:        @VERSION@
@@ -35,20 +55,40 @@ URL:            https://github.com/OrcaSlicer/OrcaSlicer
 Source0:        OrcaSlicer-%{version}.tar.gz
 Source1:        README.md
 
-# Патч 1: deps/CMakeLists.txt — системні бібліотеки (замість bundled) + CGAL-ворота
+# Патч 1: deps/CMakeLists.txt — системні бібліотеки (замість bundled)
 Patch1:         0001-deps-system-libraries.patch
-# Патч 2: deps/CGAL/CGAL.cmake — bundled CGAL залежить лише від dep_Boost
-Patch2:         0002-cgal-bundled-depends.patch
-# Патч 3: main tree — системний OpenCV (немає target/lib opencv_world)
-Patch3:         0003-main-opencv-system.patch
+# Патч 2: deps/{CGAL,Eigen,OpenVDB,MPFR} — умовні DEPENDS
+Patch2:         0002-bundled-deps-guard-depends.patch
+# Патч 3: основний CMakeLists — системний Python 3.12 і системний Boost
+Patch3:         0003-main-python-boost-system.patch
+# Патч 4: src/libslic3r — системний OpenCV і OCCT
+Patch4:         0004-main-opencv-occt-system.patch
+# Патч 5: src/CMakeLists — захист install()/POST_BUILD без bundled Python/FFmpeg
+Patch5:         0005-src-python-ffmpeg-install-guards.patch
+# Патч 6: сумісність з системним OCCT 7.9.3 (Fedora) та Boost.Asio 1.90 —
+#   Standard_Failure::what() -> GetMessageString(),
+#   GC_MakeSegment2d.hxx -> GCE2d_MakeSegment (OCCT < 8),
+#   basic_resolver_iterator -> basic_resolver_results::begin()
+Patch6:         0006-occt-7.9-boost-asio-compat.patch
 
 # Тестування та debug-пакунок не збираємо; бінарник не стрипуємо
 %global debug_package %{nil}
 
+# Fedora додає -flto=auto до CFLAGS/CXXFLAGS за замовчуванням, що для
+# OrcaSlicer (великий бінарник) призводить до вичерпання /tmp під час
+# LTO-лінкування ("Disk quota exceeded"). Вимикаємо LTO.
+%global _lto_cflags %{nil}
+%global _lto_ldflags %{nil}
+
+# Паралелізм збірки. CI/COPR (обмежені RAM) лишають 2; локально:
+#   rpmbuild -ba --define "orca_jobs 12"
+%{!?orca_jobs: %global orca_jobs 2}
+
 # ────────────────────────────────────────────────────────────────────────────
 # Build tools
 # ────────────────────────────────────────────────────────────────────────────
-BuildRequires:  cmake >= 3.13
+# >= 3.19: патч 0003 використовує версійний діапазон find_package(Python3 ...)
+BuildRequires:  cmake >= 3.19
 BuildRequires:  ninja-build
 BuildRequires:  gcc
 BuildRequires:  gcc-c++
@@ -64,25 +104,29 @@ BuildRequires:  gettext
 BuildRequires:  perl-FindBin
 BuildRequires:  perl-IPC-Cmd
 BuildRequires:  python3
+BuildRequires:  pkgconf
 BuildRequires:  wget
 
 # ── Системні devel-пакети (з них беруться бібліотеки) ──────────────────────
+# Python 3.12 — embedded-інтерпретатор GUI (патч 0003), bundled CPython не збирається
+BuildRequires:  python3.12
+BuildRequires:  python3.12-devel >= 3.12
 # Eigen3 5.0.1 = точне співпадіння з вимогою main (find_package Eigen3 5.0.1)
 BuildRequires:  eigen3-devel >= 5.0.1
-# Boost системно не використовується (бундл 1.84), проте CGAL потребує заголовки
+# Boost статичний: SLIC3R_STATIC=1 (патч 0003 прибирає Boost_NO_SYSTEM_PATHS)
 BuildRequires:  boost-devel >= 1.83
-# TBB бундлиться (статичний, 2021.5); системний 2022 як fallback
-BuildRequires:  tbb-devel >= 2021.5
+BuildRequires:  boost-static >= 1.83
+# TBB бундлиться (статичний, 2021.5) - у Fedora лише shared, а SLIC3R_STATIC=1
+# вимагає статичної версії; системний tbb-devel не потрібен і лише міг би
+# засіяти заголовки в /usr/include/tbb замість bundled-версії
 # GLFW 3.4 = точне співпадіння — system
 BuildRequires:  glfw-devel >= 3.4
-# GLEW бундлиться (потрібен OpenCSG)
-BuildRequires:  glew-devel >= 2.2
-# NLopt 2.10 > бундл 2.5 — system
+# NLopt 2.11 > бундл 2.5 — system
 BuildRequires:  NLopt-devel >= 2.5
-# CGAL — header-only. Системний CGAL на Fedora (6.1.x) має несумісне API
-# (найпа клас property_map), тому завжди будується bundled 5.6.3 (ворот >= 6.0).
-# CGAL-devel тримаємо для probe/фолбеку (якщо в майбутньому в дистро буде < 6).
-BuildRequires:  CGAL-devel >= 5.6
+# CGAL: OrcaSlicer 2.5 вимагає CGAL 6.2; Fedora 45 має рівно 6.2.1 — system.
+# Старіший системний CGAL відкидається воротами патча 0001 і будується
+# bundled 6.2.1 (фолбек).
+BuildRequires:  CGAL-devel >= 6.2
 # cereal 1.3.2 > бундл 1.3.0 — header-only, system
 BuildRequires:  cereal-devel >= 1.3
 # GMP 6.3.0 > бундл 6.2.1 — system
@@ -94,7 +138,7 @@ BuildRequires:  qhull-devel >= 8.0
 # Draco 1.5.7 = точне співпадіння — system
 BuildRequires:  draco-devel >= 1.5.7
 BuildRequires:  draco-static
-# Blosc 1.21.6 бундлиться (OpenVDB fork вимагає совмесність)
+# Blosc 1.21.6 — system (патч 0001 + cmake/modules/FindBlosc.cmake)
 BuildRequires:  blosc-devel >= 1.17
 # zlib-ng compat — system
 BuildRequires:  zlib-ng-compat-devel
@@ -110,8 +154,19 @@ BuildRequires:  openssl-devel >= 3.1
 # libcurl — system (у бандлі 7.75)
 BuildRequires:  libcurl-devel
 # OpenCV 4.13 > бундл 4.6 — system. У Fedora немає target/lib opencv_world
-# (що створював bundled збірки) — цю різницю закриває Патч 3 (OpenCV_LIBRARIES).
+# (що створював bundled збірки) — цю різницю закриває Патч 4 (OpenCV_LIBRARIES).
 BuildRequires:  opencv-devel >= 4.6
+# Assimp 6.0.5 — system (бандл 5.4.3)
+BuildRequires:  assimp-devel >= 6.0
+# LibDataChannel 0.23.1 — system (бандл 0.24.5)
+BuildRequires:  libdatachannel-devel >= 0.23
+# OCCT 7.9.3 — system (бандл 8.0.1); Патч 4 прибирає хардкод OpenCASCADE_DIR
+BuildRequires:  opencascade-devel >= 7.9
+# FFmpeg 9.0 — system (бандл 7.0.3); Патч 5 захищає file(COPY)/install()
+# від відсутності bundled libav*.so
+BuildRequires:  ffmpeg-free-devel >= 7.0
+# uv — system (замість автозавантаження під час configure)
+BuildRequires:  uv >= 0.11
 
 # ── Системні GUI/graphics залежності ────────────────────────────────────────
 BuildRequires:  dbus-devel
@@ -137,7 +192,6 @@ BuildRequires:  desktop-file-utils
 # ────────────────────────────────────────────────────────────────────────────
 # Runtime Requires (головні динамічні залежності; точні обирає rpm auto-deps)
 # ────────────────────────────────────────────────────────────────────────────
-Requires:       tbb >= 2021.5
 Requires:       openssl-libs >= 3.1
 Requires:       libcurl
 Requires:       dbus-libs
@@ -152,6 +206,11 @@ Requires:       NLopt
 Requires:       opencv >= 4.6
 Requires:       glfw
 Requires:       draco
+# Embedded Python: скелет /opt/OrcaSlicer/lib/python вказує на системну
+# інсталяцію 3.12 (/usr/lib64/python3.12 + /usr/bin/python3.12)
+Requires:       python3.12
+# Встановлення Python-пакетів у GUI виконується через uv
+Requires:       uv
 
 %description
 OrcaSlicer — відкритий FDM-слайсер на базі Bambu Studio/PrusaSlicer
@@ -165,12 +224,12 @@ OrcaSlicer — відкритий FDM-слайсер на базі Bambu Studio/
 - Мережевий друк та стріббінг (Bambu / generic printers)
 - Профілі для широкого кола принтерів
 
-Бібліотеки беруться переважно із системних -devel пакетів (OpenSSL, libcurl,
-libpng, libjpeg-turbo, freetype, expat, zlib-ng, Eigen3, cereal, GMP, MPFR,
-NLopt, Draco, Qhull, GLFW, OpenCV). CGAL системно не береться (Fedora 6.1.x має
-несумісне API) — будується bundled 5.6.3. Бундлюються також версії, яких
-немає у дистрибутиві або які потребують індивідуальних патчів (Boost, wxWidgets,
-OpenVDB, OCCT, OpenEXR, TBB, Blosc, OpenCSG, GLEW, libnoise).
+Бібліотеки беруться переважно із системних -devel пакетів Fedora 45
+(OpenSSL, libcurl, libpng, libjpeg-turbo, freetype, expat, zlib-ng, Eigen3,
+cereal, GMP, MPFR, NLopt, Draco, Qhull, GLFW, OpenCV, Assimp, LibDataChannel,
+OCCT, Blosc, Boost, CGAL 6.2, FFmpeg, Python 3.12, uv). Бундлюються лише
+ті, для яких у дистрибутиві немає сумісного пакета (wxWidgets 3.3, TBB,
+кастомний OpenVDB разом з OpenEXR 2.5.5, libnoise, SolveSpace, wxInspector).
 
 # ────────────────────────────────────────────────────────────────────────────
 %prep
@@ -180,20 +239,26 @@ OpenVDB, OCCT, OpenEXR, TBB, Blosc, OpenCSG, GLEW, libnoise).
 %patch -P1 -p1
 %patch -P2 -p1
 %patch -P3 -p1
+%patch -P4 -p1
+%patch -P5 -p1
+%patch -P6 -p1
 
 # ────────────────────────────────────────────────────────────────────────────
 %build
-# Обмеження паралелізму (велике споживання RAM у bundled deps)
-export CMAKE_BUILD_PARALLEL_LEVEL=2
+# Зупиняємося на першій помилці: інакше rpmbuild помітить лише статус
+# останньої команди секції.
+set -e
+# Паралелізм: 2 за замовчуванням (CI/COPR), локально --define "orca_jobs 12"
+export CMAKE_BUILD_PARALLEL_LEVEL=%{orca_jobs}
 export CMAKE_POLICY_VERSION_MINIMUM=3.5
 
 # ── Крок 1: залежності (deps/) ───────────────────────────────────────────────
-# Бундлюємо: Boost 1.84, wxWidgets 3.3.2, OpenVDB (custom fork tamasmeszaros),
-#            OCCT 7.6.0, OpenEXR 2.5.5, TBB 2021.5, Blosc,
-#            GLEW (local src), OpenCSG 1.4.2, libnoise,
-#            CGAL 5.6.3 (системний на Fedora 6.1.x має несумісне з 2.4.2 API).
-# Системні: OpenSSL, libcurl, expat, zlib-ng, libpng, libjpeg-turbo, freetype,
-#            Eigen3, cereal, GMP, MPFR, NLopt, Draco, Qhull, GLFW, OpenCV.
+# Бундлюємо: wxWidgets 3.3, TBB 2021.5 (статичний),
+#            OpenVDB (custom fork tamasmeszaros) + OpenEXR 2.5.5 для нього,
+#            libnoise, SolveSpace (SLVS), wxInspector.
+# Системні:  OpenSSL, libcurl, expat, zlib-ng, libpng, libjpeg-turbo, freetype,
+#            Eigen3, cereal, GMP, MPFR, NLopt, Draco, Qhull, GLFW, OpenCV,
+#            Assimp, OCCT, LibDataChannel, Blosc, Boost, FFmpeg, Python 3.12.
 
 mkdir -p deps/build
 cmake -S deps -B deps/build \
@@ -228,11 +293,14 @@ cmake -S . -B build \
     -DCMAKE_PREFIX_PATH="%{_builddir}/OrcaSlicer-%{version}/deps/build/OrcaSlicer_dep/usr/local" \
     -DCMAKE_INSTALL_PREFIX=/opt/OrcaSlicer \
     -DSLIC3R_STATIC=1 \
+    -DSLIC3R_STATIC_EXCLUDE_CURL=1 \
     -DSLIC3R_GTK=3 \
     -DBBL_RELEASE_TO_PUBLIC=1 \
     -DBBL_INTERNAL_TESTING=0 \
     -DORCA_TOOLS=ON \
     -DSLIC3R_PCH=ON \
+    -DORCA_BUNDLED_UV_EXECUTABLE=/usr/bin/uv \
+    -DORCA_BUILD_PYTHON_STUBGEN_MODULE=OFF \
     -DBUILD_TESTS=OFF
 
 cmake --build build --target OrcaSlicer
@@ -240,6 +308,7 @@ cmake --build build --target OrcaSlicer_profile_validator
 
 # ────────────────────────────────────────────────────────────────────────────
 %install
+set -e
 # cmake install з DESTDIR (-> /opt/OrcaSlicer/bin, /opt/OrcaSlicer/resources)
 DESTDIR=%{buildroot} cmake --install build
 
@@ -267,7 +336,23 @@ install -D -m 644 %{SOURCE1} %{buildroot}%{_pkgdocdir}/README.md
 
 # Dev-артефакти внутрішньої mini-бібліотеки stb_dxt (header + cmake export)
 # встановлюються upstream `install()`-правилами, але в рантаймі не потрібні.
-rm -rf %{buildroot}/opt/OrcaSlicer/include %{buildroot}/opt/OrcaSlicer/lib
+rm -rf %{buildroot}/opt/OrcaSlicer/include
+rm -rf %{buildroot}/opt/OrcaSlicer/lib
+
+# Системний uv: бінарник запам'ятовує шлях /usr/bin/uv (ORCA_BUNDLED_UV_EXECUTABLE),
+# тому копія в пакеті не потрібна — прибираємо, щоб не дублювати системний пакет.
+rm -rf %{buildroot}/opt/OrcaSlicer/resources/tools/uv
+rmdir --ignore-fail-on-non-empty %{buildroot}/opt/OrcaSlicer/resources/tools 2>/dev/null || :
+
+# ── Скелет системного Python для embedded-інтерпретатора ────────────────────
+# PythonInterpreter шукає python home як <resources>/../lib/python і вимагає
+# наявності lib/python3.12/encodings та bin/python3.12. Системна інсталяція
+# Python 3.12 лежить в /usr/lib64/python3.12 і /usr/bin/python3.12 —
+# зв'язуємо її, не ввозячи копії в пакет.
+install -d %{buildroot}/opt/OrcaSlicer/lib/python/lib
+install -d %{buildroot}/opt/OrcaSlicer/lib/python/bin
+ln -sfn /usr/lib64/python3.12 %{buildroot}/opt/OrcaSlicer/lib/python/lib/python3.12
+ln -sfn /usr/bin/python3.12 %{buildroot}/opt/OrcaSlicer/lib/python/bin/python3.12
 
 # ────────────────────────────────────────────────────────────────────────────
 %post
@@ -280,11 +365,11 @@ rm -rf %{buildroot}/opt/OrcaSlicer/include %{buildroot}/opt/OrcaSlicer/lib
 
 # ────────────────────────────────────────────────────────────────────────────
 %files
-%license LICENSE.txt
+%license /opt/OrcaSlicer/LICENSE.txt
 %dir /opt/OrcaSlicer
-/opt/OrcaSlicer/LICENSE.txt
 /opt/OrcaSlicer/bin/
 /opt/OrcaSlicer/resources/
+/opt/OrcaSlicer/lib/
 %{_bindir}/orca-slicer
 %{_datadir}/applications/orca-slicer.desktop
 %{_datadir}/icons/hicolor/32x32/apps/OrcaSlicer.png
@@ -294,6 +379,18 @@ rm -rf %{buildroot}/opt/OrcaSlicer/include %{buildroot}/opt/OrcaSlicer/lib
 
 # ────────────────────────────────────────────────────────────────────────────
 %changelog
+* Sat Nov 07 2026 OrcaSlicer RPM Packager <orca@softfever.org> - @VERSION@-@RELEASE@
+- Адаптація під OrcaSlicer 2.5.0 та бібліотеки Fedora 45
+- Нові патчі 0003-0005: системний Python 3.12, системний Boost,
+  умовні install()/POST_BUILD для bundled Python/FFmpeg
+- Системні замість бандлів: Python 3.12, FFmpeg 9.0, Assimp 6.0.5,
+  LibDataChannel 0.23.1, OCCT 7.9.3, Blosc 1.21.6, Boost 1.90, uv
+- CGAL 6.2.1 з системи (OrcaSlicer 2.5 вимагає CGAL 6.2); ворота
+  інвертовано: bundled-фолбек лише якщо системний CGAL < 6.2
+- Прибрано glew-devel / OpenCSG: GLEW і OpenCSG видалені в 2.5.0
+- Скелет /opt/OrcaSlicer/lib/python -> системна інсталяція Python 3.12
+- Паралелізм винесено в RPM-макрос orca_jobs (2 для CI/COPR,
+  локально --define "orca_jobs 12")
 * Sun Aug 09 2026 OrcaSlicer RPM Packager <orca@softfever.org> - @VERSION@-@RELEASE@
 - Перша версія пакування OrcaSlicer для Fedora (COPR)
 - deps/CMakeLists.txt: максимальне використання системних -devel бібліотек

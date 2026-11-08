@@ -35,7 +35,7 @@ srpm:
 	echo "=== Generating spec file from template ==="; \
 	test -f orca-slicer.spec || { echo "ERROR: orca-slicer.spec not found in repo root"; exit 1; }; \
 	sed -e "s/@VERSION@/$${VERSION}/g" \
-	    -e "s/@RELEASE@/5/g" \
+	    -e "s/@RELEASE@/7/g" \
 	    orca-slicer.spec > "$$HOME/rpmbuild/SPECS/orca-slicer.spec"; \
 	\
 	echo "=== Building SRPM ==="; \
