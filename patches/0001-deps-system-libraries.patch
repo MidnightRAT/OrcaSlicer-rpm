@@ -73,7 +73,7 @@ diff --git a/deps/CMakeLists.txt b/deps/CMakeLists.txt
 index 2b4055f7..d0ef471f 100644
 --- a/deps/CMakeLists.txt
 +++ b/deps/CMakeLists.txt
-@@ -355,6 +355,80 @@ if(FLATPAK)
+@@ -355,6 +355,84 @@
      find_package(CURL)
  endif()
  
@@ -149,6 +149,10 @@ index 2b4055f7..d0ef471f 100644
 +    if(MPFR_INCLUDE_DIR AND MPFR_LIBRARY)
 +        set(MPFR_FOUND TRUE)
 +    endif()
++
++    # ZLIB: Fedora ships zlib-ng-compat-devel (zlib 1.x compatible API), so the
++    # bundled zlib (zlib-ng) build is unnecessary.
++    find_package(ZLIB QUIET)
 +endif()
 +
  set(ZLIB_PKG "")
