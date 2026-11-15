@@ -11,9 +11,7 @@ index 034f8b57..a042a7b2 100644
  find_package(assimp REQUIRED)
  unset(CMAKE_POLICY_DEFAULT_CMP0167)
  cmake_policy(POP)
-@@ -683,7 +683,12 @@ target_include_directories(libslic3r PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE
- target_include_directories(libslic3r SYSTEM PUBLIC ${EXPAT_INCLUDE_DIRS})
- 
+@@ -683,3 +683,8 @@
  # Find the OCCT and related libraries
 -set(OpenCASCADE_DIR "${CMAKE_PREFIX_PATH}/lib/cmake/occt")
 +# The bundled OCCT installs its config under the deps prefix; when the build
@@ -23,8 +21,6 @@ index 034f8b57..a042a7b2 100644
 +    set(OpenCASCADE_DIR "${CMAKE_PREFIX_PATH}/lib/cmake/occt")
 +endif ()
  find_package(OpenCASCADE REQUIRED)
- target_include_directories(libslic3r SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
- 
 @@ -763,7 +768,7 @@ target_link_libraries(libslic3r
          libigl
          libnest2d
