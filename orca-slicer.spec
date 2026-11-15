@@ -379,6 +379,10 @@ ln -sfn /usr/bin/python3.12 %{buildroot}/opt/OrcaSlicer/lib/python/bin/python3.1
 
 # ────────────────────────────────────────────────────────────────────────────
 %changelog
+* Sun Nov 15 2026 OrcaSlicer RPM Packager <orca@softfever.org> - @VERSION@-@RELEASE@
+- Перевірено повну збірку під OrcaSlicer 2.5.1 (CI завжди бере найновіший реліз)
+- Патч 0004 зроблено version-agnostic (OCCT-блок застосовується до 2.5.0 і 2.5.1)
+- ZLIB тепер системний (zlib-ng-compat-devel) замість bundled zlib
 * Sat Nov 07 2026 OrcaSlicer RPM Packager <orca@softfever.org> - @VERSION@-@RELEASE@
 - Адаптація під OrcaSlicer 2.5.0 та бібліотеки Fedora 45
 - Нові патчі 0003-0006: системний Python 3.12, системний Boost,

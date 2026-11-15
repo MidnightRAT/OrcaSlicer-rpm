@@ -8,6 +8,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 - (none yet)
 
+## [2.5.1-7] — 2026-11-15
+
+### Changed
+- Verified full build against upstream **OrcaSlicer 2.5.1** (scheduled CI builds
+  always track the latest upstream release).
+- Patch `0004-main-opencv-occt-system.patch` reworked to be version-agnostic:
+  the OCCT `OpenCASCADE_DIR` hunk no longer depends on the exact surrounding
+  context, so it applies cleanly to both 2.5.0 and 2.5.1.
+- ZLIB now comes from the system (`zlib-ng-compat-devel`) instead of the
+  bundled zlib (zlib-ng) build.
+
+### Fixed
+- Scheduled GitHub Action failure on 2026-11-15: `0004` hunk #2 failed to apply
+  to the 2.5.1 source (upstream added a `WIN32`/`XML_STATIC` block before the
+  OCCT section).
+
 ## [2.5.0-7] — 2026-11-08
 
 ### Changed

@@ -15,7 +15,7 @@ Where possible the package uses **system libraries** from Fedora 45 `-devel` pac
 
 - Python 3.12 (embedded interpreter), FFmpeg 9.0, Assimp 6.0.5, LibDataChannel 0.23,
   OCCT 7.9.3, Blosc, Boost 1.90 (static), CGAL 6.2.1, OpenCV 4.13, uv
-- OpenSSL, libcurl, libpng, libjpeg-turbo, freetype, expat, zlib-ng
+- OpenSSL, libcurl, libpng, libjpeg-turbo, freetype, expat, zlib-ng (system ZLIB)
 - Eigen3 5.0.1, cereal (header-only), GMP, MPFR, NLopt, Draco, Qhull, GLFW
 
 > **CGAL.** OrcaSlicer 2.5 requires `find_package(CGAL 6.2)`, and Fedora 45 ships
@@ -51,6 +51,7 @@ The system-detection logic lives in six patches:
   `opencv_world` target/lib (the bundled one did), so `src/libslic3r/CMakeLists.txt`
   links `${OpenCV_LIBRARIES}` (core/imgproc/imgcodecs); `OpenCASCADE_DIR` is
   only pinned when the bundled OCCT config is present in the deps prefix.
+  The OCCT hunk is version-agnostic and applies to both OrcaSlicer 2.5.0 and 2.5.1.
 - `patches/0005-src-python-ffmpeg-install-guards.patch` — `INSTALL_RPATH` gets
   `$ORIGIN`, and the POST_BUILD libpython copy / FFmpeg `.so` `install()`s are
   guarded so they only run when the bundled Python/FFmpeg actually exists.
