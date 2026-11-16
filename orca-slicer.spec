@@ -185,7 +185,12 @@ BuildRequires:  gstreamer1-plugins-good
 BuildRequires:  gstreamermm-devel
 BuildRequires:  libspnav-devel
 BuildRequires:  libmspack-devel
+# libquadmath існує лише в x86-білдах Fedora: на aarch64 пакета немає
+# (нічого не надає), тому на цій архітектурі buildroot його не вирішить.
+# На x86_64 його вимагає boost-devel, тож тут залишаємо явно.
+%ifarch x86_64
 BuildRequires:  libquadmath-devel
+%endif
 BuildRequires:  fontconfig-devel
 BuildRequires:  desktop-file-utils
 
@@ -347,11 +352,11 @@ rmdir --ignore-fail-on-non-empty %{buildroot}/opt/OrcaSlicer/resources/tools 2>/
 # ── Скелет системного Python для embedded-інтерпретатора ────────────────────
 # PythonInterpreter шукає python home як <resources>/../lib/python і вимагає
 # наявності lib/python3.12/encodings та bin/python3.12. Системна інсталяція
-# Python 3.12 лежить в /usr/lib64/python3.12 і /usr/bin/python3.12 —
-# зв'язуємо її, не ввозячи копії в пакет.
+# Python 3.12 лежить в %{_libdir}/python3.12 (/usr/lib64 на x86_64 та aarch64)
+# і /usr/bin/python3.12 — зв'язуємо її, не ввозячи копії в пакет.
 install -d %{buildroot}/opt/OrcaSlicer/lib/python/lib
 install -d %{buildroot}/opt/OrcaSlicer/lib/python/bin
-ln -sfn /usr/lib64/python3.12 %{buildroot}/opt/OrcaSlicer/lib/python/lib/python3.12
+ln -sfn %{_libdir}/python3.12 %{buildroot}/opt/OrcaSlicer/lib/python/lib/python3.12
 ln -sfn /usr/bin/python3.12 %{buildroot}/opt/OrcaSlicer/lib/python/bin/python3.12
 
 # ────────────────────────────────────────────────────────────────────────────

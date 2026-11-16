@@ -6,7 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
-- (none yet)
+- **aarch64 support (Fedora 45):** the COPR project now enables the
+  `fedora-45-aarch64` chroot, and GitHub Actions run a build matrix — `x86_64`
+  on `ubuntu-latest` and `aarch64` on `ubuntu-24.04-arm` — with a separate
+  `release` job that collects both architectures' RPMs before uploading them to
+  the GitHub Release.
+
+### Changed
+- `BuildRequires: libquadmath-devel` is now x86_64-only: the package does not
+  exist in Fedora 45 on aarch64 (nothing provides it there), while on x86_64 it
+  is required by `boost-devel`.
+- The embedded-Python skeleton symlink uses `%{_libdir}` instead of a hardcoded
+  `/usr/lib64` (same value on Fedora's 64-bit arches, but architecture-explicit).
 
 ## [2.5.1-7] — 2026-11-15
 

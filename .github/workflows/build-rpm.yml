@@ -16,9 +16,21 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            arch: x86_64
+          - runner: ubuntu-24.04-arm
+            arch: aarch64
+
+    runs-on: ${{ matrix.runner }}
     container:
       image: registry.fedoraproject.org/fedora:45
+
+    outputs:
+      version: ${{ steps.version.outputs.version }}
 
     steps:
       - name: Checkout this repository
@@ -96,19 +108,30 @@ jobs:
       - name: Upload RPM artifact
         uses: actions/upload-artifact@v4
         with:
-          name: orca-slicer-rpm
+          name: orca-slicer-rpm-${{ matrix.arch }}
           path: |
-            ~/rpmbuild/RPMS/x86_64/*.rpm
+            ~/rpmbuild/RPMS/${{ matrix.arch }}/*.rpm
             ~/rpmbuild/SRPMS/*.rpm
           retention-days: 30
+
+  # Окремий джоб збирає артефакти обох архітектур і завантажує їх у реліз
+  # одноразово — так немає гонки двох matrix-джобів за один release asset.
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: orca-slicer-rpm-*
+          merge-multiple: true
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.version.outputs.version }}
-          name: OrcaSlicer ${{ steps.version.outputs.version }}
-          files: |
-            ~/rpmbuild/RPMS/x86_64/*.rpm
-            ~/rpmbuild/SRPMS/*.rpm
+          tag_name: v${{ needs.build.outputs.version }}
+          name: OrcaSlicer ${{ needs.build.outputs.version }}
+          files: '**/*.rpm'
           fail_on_unmatched_files: true
           make_latest: true

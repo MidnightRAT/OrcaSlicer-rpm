@@ -104,10 +104,11 @@ sudo dnf install orca-slicer
 
 ### From GitHub Release
 
-Download the latest `orca-slicer-*.x86_64.rpm` from [Releases](https://github.com/MidnightRAT/OrcaSlicer-rpm/releases) and install:
+Download the latest `orca-slicer-*.x86_64.rpm` (or `*.aarch64.rpm`) from [Releases](https://github.com/MidnightRAT/OrcaSlicer-rpm/releases) and install:
 
 ```bash
-sudo dnf install orca-slicer-*.x86_64.rpm
+sudo dnf install orca-slicer-*.x86_64.rpm    # x86_64
+sudo dnf install orca-slicer-*.aarch64.rpm   # aarch64
 ```
 
 ### Build from Source
@@ -162,13 +163,14 @@ rpmbuild -ba --define "orca_jobs 12" ~/rpmbuild/SPECS/orca-slicer.spec
 Automatically:
 
 1. Checks for new OrcaSlicer releases (weekly schedule)
-2. Builds src.rpm and x86_64.rpm in a Fedora 45 container
+2. Builds src.rpm and RPMs for **x86_64** (`ubuntu-latest`) and **aarch64**
+   (`ubuntu-24.04-arm`) in Fedora 45 containers
    (`dnf builddep` installs everything the spec requires)
 3. Uploads artifacts to GitHub Releases
 
 ### COPR
 
-Automatically builds for Fedora 45 from the latest main branch:
+Automatically builds for Fedora 45 (**x86_64 and aarch64**) from the latest main branch:
 
 - [COPR Project Page](https://copr.fedorainfracloud.org/coprs/chirikrat/OrcaSlicer-rpm/)
 
