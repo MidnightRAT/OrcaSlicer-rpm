@@ -170,7 +170,7 @@ Automatically:
 
 Automatically builds for Fedora 45 from the latest main branch:
 
-- [COPR Project Page](https://copr.fedorainfracloud.org/projects/chirikrat/OrcaSlicer-rpm/)
+- [COPR Project Page](https://copr.fedorainfracloud.org/coprs/chirikrat/OrcaSlicer-rpm/)
 
 **Note:** Workflows do not trigger on changes to README.md or `.copr/**`.
 
