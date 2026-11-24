@@ -51,7 +51,7 @@ The system-detection logic lives in six patches:
   `opencv_world` target/lib (the bundled one did), so `src/libslic3r/CMakeLists.txt`
   links `${OpenCV_LIBRARIES}` (core/imgproc/imgcodecs); `OpenCASCADE_DIR` is
   only pinned when the bundled OCCT config is present in the deps prefix.
-  The OCCT hunk is version-agnostic and applies to both OrcaSlicer 2.5.0 and 2.5.1.
+  The OCCT hunk is version-agnostic and applies to OrcaSlicer 2.5.0–2.5.2.
 - `patches/0005-src-python-ffmpeg-install-guards.patch` — `INSTALL_RPATH` gets
   `$ORIGIN`, and the POST_BUILD libpython copy / FFmpeg `.so` `install()`s are
   guarded so they only run when the bundled Python/FFmpeg actually exists.
@@ -124,7 +124,7 @@ wget -q "https://github.com/OrcaSlicer/OrcaSlicer/archive/refs/tags/v${VERSION}.
   -O ~/rpmbuild/SOURCES/OrcaSlicer-${VERSION}.tar.gz
 cp README.md ~/rpmbuild/SOURCES/
 cp patches/0*.patch ~/rpmbuild/SOURCES/
-sed -e "s/@VERSION@/${VERSION}/g" -e "s/@RELEASE@/7/g" \
+sed -e "s/@VERSION@/${VERSION}/g" -e "s/@RELEASE@/1/g" \
   orca-slicer.spec > ~/rpmbuild/SPECS/orca-slicer.spec
 
 # All BuildRequires come from the spec itself (single source of truth)
@@ -182,7 +182,7 @@ Automatically builds for Fedora 45 (**x86_64 and aarch64**) from the latest main
 OrcaSlicer-rpm/
 ├── .copr/Makefile              # COPR SRPM build script
 ├── .github/workflows/          # GitHub Actions workflow
-├── orca-slicer.spec            # RPM spec file (template: @VERSION@ / @RELEASE@ = 7)
+├── orca-slicer.spec            # RPM spec file (template: @VERSION@ / @RELEASE@ = 1)
 ├── patches/
 │   ├── 0001-deps-system-libraries.patch
 │   ├── 0002-bundled-deps-guard-depends.patch

@@ -94,7 +94,7 @@ jobs:
           VERSION=${{ steps.version.outputs.version }}
           # Create spec file from template with correct version
           sed -e "s/@VERSION@/${VERSION}/g" \
-              -e "s/@RELEASE@/7/g" \
+              -e "s/@RELEASE@/1/g" \
               orca-slicer.spec > ~/rpmbuild/SPECS/orca-slicer.spec
 
       - name: Install build dependencies

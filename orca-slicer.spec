@@ -384,6 +384,14 @@ ln -sfn /usr/bin/python3.12 %{buildroot}/opt/OrcaSlicer/lib/python/bin/python3.1
 
 # ────────────────────────────────────────────────────────────────────────────
 %changelog
+* Tue Nov 24 2026 OrcaSlicer RPM Packager <orca@softfever.org> - @VERSION@-@RELEASE@
+- Пакування оновлено під OrcaSlicer 2.5.2 (усі шість патчів застосовуються
+  чисто); нумерацію збірки скинуто: 2.5.1-7 -> 2.5.2-1
+- aarch64 (Fedora 45): libquadmath-devel лише під %ifarch x86_64 (на aarch64
+  пакета немає, нічого не надає; на x86_64 його вимагає boost-devel)
+- Скелет системного Python: symlink через %{_libdir} замість хардкоду /usr/lib64
+- CI: матриця x86_64 (ubuntu-latest) + aarch64 (ubuntu-24.04-arm), артефакти
+  per-arch, окремий release-джоб завантажує RPM обох архітектур одним заходом
 * Sun Nov 15 2026 OrcaSlicer RPM Packager <orca@softfever.org> - @VERSION@-@RELEASE@
 - Перевірено повну збірку під OrcaSlicer 2.5.1 (CI завжди бере найновіший реліз)
 - Патч 0004 зроблено version-agnostic (OCCT-блок застосовується до 2.5.0 і 2.5.1)

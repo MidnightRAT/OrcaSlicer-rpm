@@ -6,13 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- (none yet)
+
+## [2.5.2-1] — 2026-11-24
+
+### Added
 - **aarch64 support (Fedora 45):** the COPR project now enables the
   `fedora-45-aarch64` chroot, and GitHub Actions run a build matrix — `x86_64`
   on `ubuntu-latest` and `aarch64` on `ubuntu-24.04-arm` — with a separate
   `release` job that collects both architectures' RPMs before uploading them to
-  the GitHub Release.
+  the GitHub Release. Artifacts are uploaded per architecture
+  (`orca-slicer-rpm-x86_64`, `orca-slicer-rpm-aarch64`).
 
 ### Changed
+- Packaging release numbering reset: **2.5.1-7 → 2.5.2-1** (release counter
+  restarts at 1 for the new upstream version).
+- Scheduled CI/COPR builds now pick up upstream **OrcaSlicer 2.5.2**
+  (both fetch `releases/latest` automatically). All six patches verified to
+  apply cleanly to the 2.5.2 sources.
 - `BuildRequires: libquadmath-devel` is now x86_64-only: the package does not
   exist in Fedora 45 on aarch64 (nothing provides it there), while on x86_64 it
   is required by `boost-devel`.
