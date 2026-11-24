@@ -118,7 +118,9 @@ sudo dnf install orca-slicer-*.aarch64.rpm   # aarch64
 sudo dnf install -y rpm-build rpmdevtools git git-lfs wget curl unzip
 
 # Determine version and prepare the rpmbuild tree
-VERSION=$(curl -sL https://api.github.com/repos/OrcaSlicer/OrcaSlicer/releases/latest | grep tag_name | cut -d '"' -f 4 | sed 's/^v//')
+VERSION=$(curl -sL https://api.github.com/repos/OrcaSlicer/OrcaSlicer/releases/latest \
+  | grep -oE '"tag_name"[[:space:]]*:[[:space:]]*"[^"]*"' | head -n 1 \
+  | cut -d '"' -f 4 | sed 's/^v//')
 rpmdev-setuptree
 wget -q "https://github.com/OrcaSlicer/OrcaSlicer/archive/refs/tags/v${VERSION}.tar.gz" \
   -O ~/rpmbuild/SOURCES/OrcaSlicer-${VERSION}.tar.gz

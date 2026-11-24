@@ -6,9 +6,10 @@ srpm:
 	\
 	echo "=== Fetching latest release version ==="; \
 	VERSION=$$(curl -sfL https://api.github.com/repos/OrcaSlicer/OrcaSlicer/releases/latest \
-	  | grep '"tag_name"' | cut -d '"' -f 4 | sed 's/^v//'); \
-	if [ -z "$$VERSION" ]; then \
-	  echo "ERROR: failed to determine latest version from GitHub API"; \
+	  | grep -oE '"tag_name"[[:space:]]*:[[:space:]]*"[^"]*"' | head -n 1 \
+	  | cut -d '"' -f 4 | sed 's/^v//'); \
+	if ! printf '%s' "$$VERSION" | grep -Eq '^[0-9]+(\.[0-9]+)+$$'; then \
+	  echo "ERROR: failed to determine latest version from GitHub API (got: '$$VERSION')"; \
 	  exit 1; \
 	fi; \
 	echo "Latest version: $${VERSION}"; \

@@ -5,8 +5,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-### Added
-- (none yet)
+### Fixed
+- Version detection from the GitHub API no longer assumes pretty-printed JSON:
+  the tag is extracted with `grep -oE '"tag_name"...'` (works for minified
+  responses too) and validated as `X.Y[.Z]` before use. Without this, a minified
+  response made `cut -d'"' -f4` return the release `url`
+  (`https://api.github.com/.../releases/453424010`) instead of the tag, and the
+  COPR aarch64 SRPM build (11387153) died in `wget` with exit code 8.
+  Applied to `.copr/Makefile`, the CI workflow and the README instructions.
 
 ## [2.5.2-1] — 2026-11-24
 
